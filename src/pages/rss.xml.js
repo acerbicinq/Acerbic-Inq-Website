@@ -1,4 +1,4 @@
-import rss, { pagesGlobToRssItems } from '@astrojs/rss';import { sync } from 'astro';
+import rss, { pagesGlobToRssItems } from '@astrojs/rss';import { async } from 'astro';
 
 
 export async function GET(context) {
