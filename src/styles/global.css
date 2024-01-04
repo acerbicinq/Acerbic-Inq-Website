@@ -61,6 +61,12 @@ html {
   .expanded {
     display: unset;
   }
+  html.base {
+    background-color: #edc06a;
+  }
+  html.light {
+    
+  }
   html.dark {
     background-color: #0d0950;
     color: #fff;
