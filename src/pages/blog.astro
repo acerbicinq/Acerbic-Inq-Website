@@ -3,11 +3,14 @@ import { getCollection } from "astro:content";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import BlogPost from "../components/BlogPost.astro";
 
-const pageTitle = "My Astro Learning Blog";
+const pageTitle = "Multimedia Articles";
 const allPosts = await getCollection("posts");
 ---
 <BaseLayout pageTitle={pageTitle}>
-  <p>This is where I will post about my journey learning Astro.</p>
+    <p>I really love making multimedia articles. Everytime I make a podcast, I might have something 
+    extra to say about it later, and everytime I write something, I almost always want to say something. So I decided to mesh the two ideas together.
+Choose a category below, or simply dive into the content!</p>
+<p>NOTE: Insert Category Toolbar as a component here</p>
   <ul>
     {
       allPosts.map((post) => (

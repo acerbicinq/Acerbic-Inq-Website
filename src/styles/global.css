@@ -1,6 +1,6 @@
 html {
-    background-color: #f1f5f9;
-    font-family: sans-serif;
+    background-color: #edc06a;
+    font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
   }
   
   body {
@@ -35,16 +35,12 @@ html {
     background-color: #ff9776;
   }
 .nav-links {
-    width: 100%;
-    top: 5rem;
-    left: 48px;
-    background-color: #ff9776;
-    display: none;
+    display: inline-block;
     margin: 0;
   }
   
   .nav-links a {
-    display: block;
+    display: inline-block;
     text-align: center;
     padding: 10px 0;
     text-decoration: none;
@@ -63,9 +59,10 @@ html {
   }
   html.base {
     background-color: #edc06a;
+    color: black;
   }
   html.light {
-    
+
   }
   html.dark {
     background-color: #0d0950;

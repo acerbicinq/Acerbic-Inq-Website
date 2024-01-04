@@ -18,31 +18,7 @@ Choose a category below, or simply dive into the content!</p>
 </section>
 <section>
     Insert "My Articles" CMS here.
-    <svg viewbox="0 0 100 100">
-        <defs>
-            <circle id="shape" cx="50" cy="50" r="50" />
-            <filter id="noise">
-                <feTurbulence
-                    type="fractalNoise"
-                    baseFrequency="19.5"
-                    numOctaves="10"
-                    result="turbulence"
-                />
-                <feComposite operator="in" in="turbulence" in2="SourceAlpha" result="composite"/>
-                <feColorMatrix in="composite" type="luminanceToAlpha" />
-                <feBlend in="SourceGraphic" in2="composite" mode="color-burn" />
-            </filter>
-            <mask id="gradient">
-                <linearGradient id="fade">
-                    <stop offset="0%" stop-color="black" stop-opacity="0.6" />
-                    <stop offset="65%" stop-color="white" stop-opacity="0.9" />
-                    <stop offset="75%" stop-color="white" stop-opacity="1" />
-                </linearGradient>
-                <use href="#shape" fill="url('#fade')" />
-            </mask>
-        </defs>
-        <use href="#shape" fill="hsl(337, 92%, 69%)" mask="url(#gradient)" filter="url('#noise')" />
-    </svg>
+
 </section>
 
 </div>
