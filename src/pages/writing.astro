@@ -6,23 +6,16 @@ const pageTitle = "Writing";
 <BaseLayout pageTitle={pageTitle}>
     <section class="multimedia-articles-header">
            <div class="writing-categories">
-            <div class="writing-links shorts">Shorts</div>
-            <div class="writing-links novels">Novels</div>
-            <div class="writing-links poetry">Poetry</div>
+            <div class="writing-links shorts"><a href="/">Shorts</a></div>
+            <div class="writing-links novels"><a href="/">Novels</a></div>
+            <div class="writing-links poetry"><a href="/">Poetry</a></div>
         </div>
     </section>
 
 </BaseLayout>
 
 <style>
-    writing-categories {
-    background-color: #f1d4a1;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: space-around;
-  
-}
+
 .writing-links {
     height: 100%;
     border: 1px solid;
@@ -30,7 +23,12 @@ const pageTitle = "Writing";
     margin: 0.25em;
     font-size: 2em;
     align-content: center;
+    & a {
+        color: black;
+        text-decoration: none;
+    }
 }
+
 .novels {
     background-image: radial-gradient( ellipse farthest-corner at 10px 10px , #edc06a, #edc06a 50%, #f1d4a1 50%);
     background-size: 10px 10px;
