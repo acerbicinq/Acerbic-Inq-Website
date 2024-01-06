@@ -1,31 +1,61 @@
 ---
-import Social from './Social.astro';
 ---
 
 <style>
     footer {
-      display: flex;
-      gap: 1rem;
+      gap: 6rem;
       margin-top: 2rem;
+      
+    }
+    nav {
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      @media (min-width: 620px) {
+        flex-direction: row;
+      }
+    }
+    a {
+      padding: 1.2em;
+      border-radius: 16px;
+      margin: 5px;
+      color: black;
+      background-color: #f1d4a1;
+      text-decoration: none;
+    }
+    img {
+      height: 25px;
+      width: 25px;
     }
 
-    
 
+#copyright {
+  margin: 0 auto;
+  text-align: center;
+  align-self: flex-end;
+  color: var(--text-color);
+
+
+}
   </style>
 
 <footer>
-  <Social platform="github" username="acerbicinq" />
-  <Social platform="mastodon" username="acerbicinq" />
-  <hr>
+
   <nav>  
-    <ul>
-      <li><a href="index.html" alt="home button">Search</a></li>
-      <li><a href="index.html" alt="home button">Home</a></li>
-      <li><address alt="email button"><a href="mailto:contact@acerbicinq.com">Email Me</a></address></li>
-      <!-- <li><a href="privacy-policy.html">Privacy Policy</a></li> -->
-      <li id="copyright"></li>
-    </ul>
+    
+    <!-- <Social platform="github" username="acerbicinq" />
+    <Social platform="mastodon" username="acerbicinq" /> -->
+      <a href="https://github.com/acerbicinq/"><img src="/github-mark.svg" alt="github logo"></a>
+      <a href="https://mastodon.social/@acerbicinq"><img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Font_Awesome_5_brands_mastodon.svg" alt="mastodon logo"></a>
+
+      <a href="index.html" alt="home button">Home</a>
+      <a href="mailto:contact@acerbicinq.com">Email Me</a>
+      <!-- <a href="privacy-policy.html">Privacy Policy</a>
+            <a href="index.html" alt="search button">Search</a>
+ -->
+    <p id="copyright"></p>
   </nav>
+
 </footer>
 
 <script>
