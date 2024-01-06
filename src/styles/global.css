@@ -21,6 +21,9 @@ html {
   h1 {
     margin: 1rem 0;
     font-size: 2.5rem;
+    background-image: var(--h1-bg-color);
+    padding: 0 0.1em;
+    border-radius: 16px;
   }
   a {
     color: var(--text-color)
@@ -38,9 +41,11 @@ html {
     .nav-links a:focus {
       background-color: var(--link-bg-color);
     }
-
+  .ailogo {
+      display: inline-block;
+  }
   .hamburger {
-    padding-right: 20px;
+    display: inline-block;
     cursor: pointer;
   }
 
@@ -48,7 +53,7 @@ html {
     display: block;
     width: 35px;
     height: 3px;
-    margin-bottom: 4px;
+    margin: 4px;
     background-color: var(--hamburger-line-color);
   }
 
@@ -57,8 +62,8 @@ html {
   }
   
   .nav-links a {
-    display: inline-block;
-    text-align: center;
+    display: block;
+    text-align: right;
     padding: 10px 15px;
     text-decoration: none;
     font-size: 1.2rem;
@@ -74,6 +79,8 @@ html {
   --text-color: #000;
   --link-bg-color: #f1d4a1;
   --hamburger-line-color: #000;
+  --h1-bg-color: linear-gradient(to right, #f1d4a1, #edc06a);
+   
 }
 
 /* Define dark theme styles */
@@ -82,4 +89,5 @@ html {
   --text-color: #f1d4a1;
   --link-bg-color: #494949;
   --hamburger-line-color: #f1d4a1;
+  --h1-bg-color: linear-gradient(to right, #494949, #303030);
 }

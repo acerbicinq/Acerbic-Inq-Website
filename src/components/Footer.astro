@@ -20,8 +20,13 @@ import Social from './Social.astro';
       <li><a href="index.html" alt="home button">Search</a></li>
       <li><a href="index.html" alt="home button">Home</a></li>
       <li><address alt="email button"><a href="mailto:contact@acerbicinq.com">Email Me</a></address></li>
-      <li><a href="privacy-policy.html">Privacy Policy</a></li>
-      <li>&copy; 2022 Acerbic Inq</li>
+      <!-- <li><a href="privacy-policy.html">Privacy Policy</a></li> -->
+      <li id="copyright"></li>
     </ul>
   </nav>
 </footer>
+
+<script>
+  document.getElementById("copyright").textContent = `© ${new Date().getFullYear()} Acerbic Inq`;
+
+</script>
