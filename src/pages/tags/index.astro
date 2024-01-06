@@ -10,10 +10,6 @@ const pageTitle="Tag Index";
 <div class="tags">{tags.map((tag => <p class="tag"><a href={`/tags/${tag}`}>{tag}</a></p>))}</div>
 </BaseLayout>
 <style>
-    a {
-      text-decoration: none;
-    }
-  
     .tags {
       display: flex;
       flex-wrap: wrap;
@@ -21,13 +17,18 @@ const pageTitle="Tag Index";
   
     .tag {
       color: black;
-      background-color: var(link-bg-color);
       border: dotted 1px #a1a1a1;
       padding: .5em 1em;
       font-size: 1.15em;
       border-radius: 16px;
       margin: 5px;
-
+      & a {
+      text-decoration: none;
+    }
+      &:hover,
+      &:focus {
+        background-color: var(--link-bg-color);
+      }
     
     }
   </style>
