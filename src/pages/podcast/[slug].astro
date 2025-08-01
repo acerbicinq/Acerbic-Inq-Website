@@ -1263,7 +1263,7 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
           window.handleSpotifyTrackEnd = null; // Clear handler
         } else if (currentTrack.element && !currentTrack.element.paused) {
           // Stop fallback audio
-          currentTrack.element.pause();
+          currentTrack.element.pause();          const SPOTIFY_CLIENT_ID = '14bd95608ea1475a8e8ce783fb072e53'; // Replace with your actual client ID
         }
       }
       
@@ -1546,7 +1546,7 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
 
   // Spotify App Configuration (you'll need to register your app)
   const SPOTIFY_CLIENT_ID = 'your_client_id_here'; // Replace with your actual client ID
-  const SPOTIFY_REDIRECT_URI = window.location.origin + window.location.pathname;
+  const SPOTIFY_REDIRECT_URI = 'https://acerbicinq.netlify.app/podcast/idkwhoiam';
   const SPOTIFY_SCOPES = 'streaming user-read-email user-read-private user-modify-playback-state user-read-playback-state';
 
   // Check if user is returning from Spotify OAuth
