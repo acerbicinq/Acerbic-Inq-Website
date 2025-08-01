@@ -1,0 +1,155 @@
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background-color: var(--background-color);
+  color: var(--text-color);
+  font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+  }
+  header {
+    margin-top: 3em;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  body {
+    margin: 0 auto;
+    width: 100%;
+    max-width: 80ch;
+    padding: 1rem;
+    line-height: 1.5;
+
+  
+  }
+ 
+  h1 {
+    margin: 2.5rem 0;
+    font-size: 2.5rem;
+    background-image: var(--h1-bg-color);
+    padding: 0 0.1em;
+    border-radius: 16px;
+  }
+  a {
+    color: var(--text-color)
+  }
+
+
+  /* nav styles */
+  .nav-links {
+    display: none;
+    position: static;
+    width: auto;
+    background: none;
+    }
+    .nav-links a:hover,
+    .nav-links a:focus {
+      background-color: var(--link-bg-color);
+    }
+  .ailogo {
+      display: inline-block;
+  }
+  .hamburger {
+    display: inline-block;
+    cursor: pointer;
+  }
+
+  .hamburger .line {
+    display: block;
+    width: 35px;
+    height: 3px;
+    margin: 4px;
+    background-color: var(--hamburger-line-color);
+  }
+
+  .expanded {
+    display: unset;
+  }
+  
+  .nav-links a {
+    display: block;
+    text-align: right;
+    padding: 10px 15px;
+    text-decoration: none;
+    font-size: 1.2rem;
+    font-weight: bold;
+    text-transform: uppercase;
+  }
+
+
+ /* Define light theme styles */
+  
+:root {
+  --background-color: #edc06a;
+  --text-color: #000;
+  --link-bg-color: #f1d4a1;
+  --hamburger-line-color: #000;
+  --h1-bg-color: linear-gradient(to right, #f1d4a1, #edc06a);
+  
+  /* New color palette from design guide */
+  --color-plum: #685466;
+  --color-blush: #eecad4;
+  --color-gold: #dbb982;
+  --color-sage: #cfdcda;
+  --color-teal: #5e7f7b;
+  --color-charcoal: #666e70;
+  
+  /* Music player specific colors */
+  --player-bg: var(--color-plum);
+  --player-accent: var(--color-gold);
+  --player-text: #ffffff;
+  --player-secondary: var(--color-blush);
+  --waveform-progress: var(--color-teal);
+  --waveform-bg: var(--color-sage);
+}
+
+/* Define dark theme styles */
+.dark {
+  --background-color: #303030;
+  --text-color: #f1d4a1;
+  --link-bg-color: #494949;
+  --hamburger-line-color: #f1d4a1;
+  --h1-bg-color: linear-gradient(to right, #494949, #303030);
+  
+  /* Dark theme adjustments for new palette */
+  --player-bg: #424242;
+  --player-accent: var(--color-gold);
+  --player-text: #ffffff;
+  --player-secondary: #606060;
+  --waveform-progress: var(--color-teal);
+  --waveform-bg: #505050;
+}
+
+/* Stykes foor Footer */
+footer {
+  gap: 6rem;
+  margin-top: 2rem;
+  & nav {
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    @media (min-width: 620px) {
+      flex-direction: row;
+    }
+  }
+  & a {
+    padding: 1.2em;
+    border-radius: 16px;
+    margin: 5px;
+    color: black;
+    background-color: #f1d4a1;
+    text-decoration: none;
+  }
+  & img {
+    height: 25px;
+    width: 25px;
+  }
+}
+
+#copyright {
+margin: 0 auto;
+text-align: center;
+align-self: flex-end;
+color: var(--text-color);
+
+}

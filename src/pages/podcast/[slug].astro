@@ -1,0 +1,1755 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { client, urlFor } from "../../lib/sanity";
+
+export async function getStaticPaths() {
+  const episodes = await client.fetch(`
+    *[_type == "podcastEpisode"] {
+      slug,
+      title
+    }
+  `);
+  
+  return episodes.map((episode) => ({
+    params: { slug: episode.slug.current },
+  }));
+}
+
+const { slug } = Astro.params;
+
+const episode = await client.fetch(`
+  *[_type == "podcastEpisode" && slug.current == $slug][0] {
+    _id,
+    title,
+    slug,
+    episodeNumber,
+    publishedAt,
+    description,
+    coverArt,
+    audioFile{
+      asset->{
+        _id,
+        url
+      }
+    },
+    videoFile{
+      asset->{
+        _id,
+        url
+      }
+    },
+    duration,
+    guest,
+    chapters[]{ 
+      ...,
+      interludeTracks[]{
+        ...,
+        fallbackAudio{
+          asset->{
+            _id,
+            url
+          }
+        }
+      }
+    },
+    transcriptFile{
+      asset->{
+        _id,
+        url
+      }
+    },
+    transcriptText,
+    transcript,
+    tags,
+    showNotes,
+    radioSettings
+  }
+`, { slug });
+
+if (!episode) {
+  return Astro.redirect("/404");
+}
+
+const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
+---
+
+<BaseLayout pageTitle={pageTitle}>
+  <div class="episode-container">
+    <header class="episode-header">
+      <div class="episode-cover-section">
+        {episode.coverArt && (
+          <img 
+            src={urlFor(episode.coverArt).width(400).height(400).url()} 
+            alt={`Cover art for ${episode.title}`}
+            class="episode-cover-large"
+          />
+        )}
+      </div>
+      
+      <div class="episode-info">
+        <span class="episode-number">Episode {episode.episodeNumber}</span>
+        <h1>{episode.title}</h1>
+        {episode.description && <p class="episode-description">{episode.description}</p>}
+        
+        <div class="episode-meta">
+          {episode.duration && <span class="duration">⏱️ {episode.duration}</span>}
+          {episode.guest?.name && <span class="guest">🎤 with {episode.guest.name}</span>}
+          <time datetime={episode.publishedAt}>
+            {new Date(episode.publishedAt).toLocaleDateString()}
+          </time>
+        </div>
+        
+        {episode.tags && episode.tags.length > 0 && (
+          <div class="episode-tags">
+            {episode.tags.map((tag) => (
+              <span class="tag">{tag}</span>
+            ))}
+          </div>
+        )}
+      </div>
+    </header>
+
+    <!-- Media Player Controls -->
+    <div class="player-controls">
+      <div class="media-selector">
+        <button class="media-btn active" data-type="audio">🎧 Audio</button>
+        {episode.videoFile && (
+          <button class="media-btn" data-type="video">📹 Video</button>
+        )}
+      </div>
+      
+      <div class="control-group">
+        <label class="control-label">
+          <input type="checkbox" id="showTranscript" />
+          <span class="checkbox-custom"></span>
+          Show Transcript
+        </label>
+      </div>
+    </div>
+
+    <!-- Media Player -->
+    <div class="media-player">
+      {episode.audioFile && (
+        <div class="audio-player-container active" data-media="audio">
+          <audio id="mainAudio" controls preload="metadata">
+            <source src={episode.audioFile?.asset?.url} type="audio/mpeg" />
+            Your browser does not support the audio element.
+          </audio>
+        </div>
+      )}
+      
+      {episode.videoFile && (
+        <div class="video-player-container" data-media="video">
+          <video id="mainVideo" controls preload="metadata">
+            <source src={episode.videoFile?.asset?.url} type="video/mp4" />
+            Your browser does not support the video element.
+          </video>
+        </div>
+      )}
+    </div>
+
+    <!-- Chapters -->
+    {episode.chapters && episode.chapters.length > 0 && (
+      <div class="chapters-section">
+        <h2>Chapters</h2>
+        <div class="chapters-list">
+          {episode.chapters.map((chapter, index) => (
+            <div class="chapter-item" data-chapter={index}>
+              <div class="chapter-status">
+                <span class="chapter-number">{index + 1}</span>
+                <div class="chapter-progress">
+                  <div class="progress-bar">
+                    <div class="progress-fill" data-chapter-index={index}></div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="chapter-info">
+                <h3 class="chapter-title">{chapter.title}</h3>
+                <div class="chapter-time">
+                  <span class="time-range">{chapter.startTime} - {chapter.endTime}</span>
+                  <span class="chapter-status-text" data-chapter-index={index}>Not Started</span>
+                </div>
+                {chapter.description && (
+                  <p class="chapter-description">{chapter.description}</p>
+                )}
+                
+                {/* Interlude Tracks */}
+                {chapter.interludeTracks && chapter.interludeTracks.length > 0 && (
+                  <div class="interlude-section">
+                    <h4 class="interlude-title">🎵 Interlude Music</h4>
+                    <div class="interlude-tracks" id={`interlude-tracks-${index}`}>
+                      {chapter.interludeTracks.map((track, trackIndex) => (
+                        <div class="interlude-track" data-track-index={trackIndex}>
+                          <div class="track-info">
+                            <strong>{track.songTitle}</strong> by {track.artist}
+                            {track.album && <span class="album-info"> • {track.album}</span>}
+                            {track.duration && <span class="duration-info"> ({track.duration})</span>}
+                          </div>
+                          
+                          <div class="streaming-options">
+                            {track.streamingLinks?.map((link, linkIndex) => (
+                              <div class="streaming-option" data-platform={link.platform}>
+                                {link.platform === 'spotify' && link.url && (
+                                  <div class="spotify-embed-container">
+                                    <div class="embed-notice">
+                                      <p>🎵 Click play in the Spotify player below:</p>
+                                    </div>
+                                    <iframe 
+                                      src={`https://open.spotify.com/embed/track/${link.url.match(/track\/([a-zA-Z0-9]+)/)?.[1] || ''}?utm_source=generator&theme=0`}
+                                      width="100%" 
+                                      height="152" 
+                                      frameBorder="0" 
+                                      allowtransparency="true" 
+                                      allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" 
+                                      loading="lazy"
+                                      style="border-radius: 12px;"
+                                    ></iframe>
+                                  </div>
+                                )}
+                                
+                                {link.platform === 'youtube-music' && link.embedCode && (
+                                  <div class="youtube-embed-container">
+                                    <div set:html={link.embedCode.replace('width="560" height="315"', 'width="100%" height="200"')}></div>
+                                  </div>
+                                )}
+                                
+                                <a 
+                                  href={link.url} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  class="external-link"
+                                >
+                                  Open in {link.platform === 'spotify' ? 'Spotify' : 
+                                           link.platform === 'youtube-music' ? 'YouTube Music' : 
+                                           link.platform.charAt(0).toUpperCase() + link.platform.slice(1)}
+                                </a>
+                              </div>
+                            ))}
+                          </div>
+                          
+                          {/* Fallback Audio Player */}
+                          {track.fallbackAudio && (
+                            <div class="fallback-audio-section">
+                              <h5>🎧 Fallback Player:</h5>
+                              <audio controls preload="metadata" crossorigin="anonymous">
+                                <source src={track.fallbackAudio.asset?.url} type="audio/mpeg" />
+                                Your browser does not support the audio element.
+                              </audio>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <button class="jump-to-chapter" data-start-time={chapter.startTime}>
+                ▶ Jump to Chapter
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+
+    <!-- Transcript -->
+    {episode.transcript && (
+      <div class="transcript-section" style="display: none;">
+        <h2>Transcript</h2>
+        <div class="transcript-content">
+          {episode.transcript.map((entry, index) => (
+            <div class="transcript-entry" data-timestamp={entry.timestamp}>
+              <span class="timestamp">{entry.timestamp}</span>
+              <span class="speaker">{entry.speaker}:</span>
+              <span class="text">{entry.text}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+
+    <!-- Guest Info -->
+    {episode.guest && (
+      <div class="guest-section">
+        <h2>Guest: {episode.guest.name}</h2>
+        {episode.guest.bio && <p>{episode.guest.bio}</p>}
+        
+        <div class="guest-links">
+          {episode.guest.website && (
+            <a href={episode.guest.website} target="_blank" rel="noopener noreferrer">
+              Website
+            </a>
+          )}
+          {episode.guest.social?.map((social) => (
+            <a href={social.url} target="_blank" rel="noopener noreferrer">
+              {social.platform.charAt(0).toUpperCase() + social.platform.slice(1)}
+            </a>
+          ))}
+        </div>
+      </div>
+    )}
+
+    <!-- Show Notes -->
+    {episode.showNotes && (
+      <div class="show-notes-section">
+        <h2>Show Notes</h2>
+        <div class="show-notes-content">
+          <!-- Rich text content would need a component to render properly -->
+          <div class="rich-text-placeholder">
+            [Show notes content would be rendered here]
+          </div>
+        </div>
+      </div>
+    )}
+
+    <!-- Navigation -->
+    <nav class="episode-navigation">
+      <a href="/podcast" class="back-link">← Back to Podcast</a>
+    </nav>
+  </div>
+</BaseLayout>
+
+<style>
+  .episode-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 2rem;
+  }
+  
+  .episode-header {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 2rem;
+    margin-bottom: 2rem;
+  }
+  
+  .episode-cover-large {
+    width: 100%;
+    border-radius: 12px;
+  }
+  
+  .episode-number {
+    background: #007acc;
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    font-weight: bold;
+  }
+  
+  .episode-info h1 {
+    margin: 0.5rem 0 1rem 0;
+    font-size: 2rem;
+    line-height: 1.2;
+  }
+  
+  .episode-description {
+    color: #666;
+    line-height: 1.5;
+    margin-bottom: 1rem;
+  }
+  
+  .episode-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    color: #666;
+  }
+  
+  .episode-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  
+  .tag {
+    background: #f0f0f0;
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    color: #666;
+  }
+  
+  .player-controls {
+    background: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  
+  .media-selector {
+    display: flex;
+    gap: 1rem;
+  }
+  
+  .media-btn {
+    background: #e9ecef;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .media-btn.active {
+    background: #007acc;
+    color: white;
+  }
+  
+  .control-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .control-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+  }
+  
+  .checkbox-custom {
+    width: 20px;
+    height: 20px;
+    background: white;
+    border: 2px solid #ddd;
+    border-radius: 4px;
+    display: inline-block;
+    position: relative;
+  }
+  
+  input[type="checkbox"] {
+    display: none;
+  }
+  
+  input[type="checkbox"]:checked + .checkbox-custom {
+    background: #007acc;
+    border-color: #007acc;
+  }
+  
+  input[type="checkbox"]:checked + .checkbox-custom::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-weight: bold;
+  }
+  
+  .media-player {
+    margin-bottom: 2rem;
+  }
+  
+  .audio-player-container,
+  .video-player-container {
+    display: none;
+  }
+  
+  .audio-player-container.active,
+  .video-player-container.active {
+    display: block;
+  }
+  
+  #mainAudio,
+  #mainVideo {
+    width: 100%;
+    border-radius: 8px;
+  }
+  
+  .chapters-section {
+    margin-bottom: 2rem;
+  }
+  
+  .chapters-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .chapter-item {
+    background: white;
+    border: 1px solid #e1e1e1;
+    border-radius: 8px;
+    padding: 1.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .chapter-item:hover {
+    border-color: #007acc;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  
+  .chapter-title {
+    margin: 0 0 0.5rem 0;
+    color: #007acc;
+  }
+  
+  .chapter-time {
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 0.5rem;
+  }
+  
+  .chapter-description {
+    color: #666;
+    line-height: 1.5;
+    margin-bottom: 1rem;
+  }
+  
+  .jump-to-chapter {
+    background: #007acc;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    margin-top: 1rem;
+    transition: background 0.3s ease;
+  }
+  
+  .jump-to-chapter:hover {
+    background: #005a9e;
+  }
+  
+  .chapter-item.active {
+    border-color: #007acc;
+    background-color: #f0f8ff;
+  }
+  
+  .transcript-section {
+    background: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+  }
+  
+  .transcript-content {
+    height: 400px;
+    overflow-y: auto;
+    padding: 1rem;
+    background: white;
+    border-radius: 8px;
+    scroll-behavior: smooth;
+  }
+  
+  .transcript-entry {
+    display: flex;
+    gap: 1rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background-color 0.3s ease;
+  }
+  
+  .transcript-entry.current {
+    background-color: #e6f3ff;
+    border-left: 4px solid #007acc;
+    padding-left: 1rem;
+    margin-left: -1rem;
+    box-shadow: 0 2px 4px rgba(0, 122, 204, 0.2);
+    transform: translateX(2px);
+  }
+  
+  .transcript-entry.current .timestamp {
+    background-color: #007acc;
+    color: white;
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+  }
+  
+  .timestamp {
+    color: #007acc;
+    font-weight: bold;
+    min-width: 80px;
+    cursor: pointer;
+  }
+  
+  .speaker {
+    font-weight: bold;
+    min-width: 100px;
+  }
+  
+  .text {
+    flex: 1;
+    line-height: 1.5;
+  }
+  
+  .guest-section,
+  .show-notes-section {
+    background: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+  }
+  
+  .guest-links {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+  
+  .guest-links a {
+    background: #007acc;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    text-decoration: none;
+  }
+  
+  .back-link {
+    display: inline-block;
+    background: #f0f0f0;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    text-decoration: none;
+    color: #333;
+  }
+
+  /* Interlude Styles */
+  .interlude-section {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: rgba(0, 122, 204, 0.05);
+    border-radius: 8px;
+    border-left: 4px solid #007acc;
+  }
+
+  .interlude-title {
+    margin: 0 0 0.75rem 0;
+    font-size: 1rem;
+    color: #007acc;
+    font-weight: 600;
+  }
+
+  .interlude-tracks {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .interlude-track {
+    background: white;
+    border-radius: 8px;
+    padding: 1rem;
+    border: 1px solid rgba(0, 122, 204, 0.2);
+  }
+
+  .track-info {
+    margin-bottom: 0.75rem;
+    line-height: 1.4;
+  }
+
+  .album-info, .duration-info {
+    color: #666;
+    font-weight: normal;
+  }
+
+  .streaming-options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .streaming-option {
+    position: relative;
+  }
+
+  .spotify-embed-container iframe,
+  .youtube-embed-container iframe {
+    border-radius: 8px;
+    max-width: 100%;
+  }
+
+  .youtube-embed-container {
+    position: relative;
+    padding-bottom: 56.25%; /* 16:9 aspect ratio */
+    height: 0;
+    overflow: hidden;
+    border-radius: 8px;
+  }
+
+  .youtube-embed-container iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .external-link {
+    display: inline-block;
+    margin-top: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: #007acc;
+    color: white;
+    text-decoration: none;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: background 0.2s ease;
+  }
+
+  .external-link:hover {
+    background: #005a9e;
+  }
+
+  .embed-notice {
+    margin-bottom: 0.5rem;
+  }
+
+  .embed-notice p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #007acc;
+    font-weight: 500;
+  }
+
+  .fallback-audio-section {
+    margin-top: 1rem;
+    padding: 0.75rem;
+    background: rgba(0, 122, 204, 0.1);
+    border-radius: 6px;
+    border: 1px dashed #007acc;
+  }
+
+  .fallback-audio-section h5 {
+    margin: 0 0 0.5rem 0;
+    font-size: 0.9rem;
+    color: #007acc;
+    font-weight: 600;
+  }
+
+  .fallback-audio-section audio {
+    width: 100%;
+    height: 40px;
+  }
+
+  /* Animation for pulsing status indicators */
+  @keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.6; }
+    100% { opacity: 1; }
+  }
+  
+  @media (max-width: 768px) {
+    .episode-header {
+      grid-template-columns: 1fr;
+      text-align: center;
+    }
+    
+    .episode-cover-large {
+      max-width: 300px;
+      margin: 0 auto;
+    }
+    
+    .player-controls {
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+    }
+    
+    .media-selector {
+      justify-content: center;
+    }
+
+    .interlude-section {
+      margin-top: 0.75rem;
+      padding: 0.75rem;
+    }
+
+    .interlude-track {
+      padding: 0.75rem;
+    }
+  }
+</style>
+
+<!-- Episode data for JavaScript -->
+<script type="application/json" id="episode-data" set:html={JSON.stringify({
+  chapters: episode.chapters || [],
+  transcript: episode.transcript || [],
+  transcriptText: episode.transcriptText || ""
+})}></script>
+
+<script type="module">
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log('Phase 1 Podcast player initializing...');
+    
+    // Get episode data
+    const episodeDataScript = document.getElementById('episode-data');
+    const episodeData = episodeDataScript ? JSON.parse(episodeDataScript.textContent) : { chapters: [] };
+    
+    console.log('Episode data loaded:', episodeData);
+    
+    // Transcript parsing function
+    function parseTranscriptText() {
+      const transcriptText = episodeData.transcriptText;
+      if (!transcriptText) return [];
+      
+      const entries = [];
+      const lines = transcriptText.split('\n');
+      
+      for (const line of lines) {
+        if (line.trim() === '') continue;
+        
+        // Support multiple formats:
+        // [MM:SS] Speaker: Text
+        // [MM:SS] Text (no speaker)
+        // MM:SS - Speaker: Text  
+        // MM:SS - Text (no speaker)
+        // MM:SS Speaker: Text
+        // MM:SS Text (no speaker)
+        
+        const patterns = [
+          /^\[(\d{1,2}:\d{2}(?::\d{2})?)\]\s*([^:]+):\s*(.+)$/,     // [MM:SS] Speaker: Text
+          /^\[(\d{1,2}:\d{2}(?::\d{2})?)\]\s*(.+)$/,               // [MM:SS] Text (no speaker)
+          /^(\d{1,2}:\d{2}(?::\d{2})?)\s*-\s*([^:]+):\s*(.+)$/,    // MM:SS - Speaker: Text
+          /^(\d{1,2}:\d{2}(?::\d{2})?)\s*-\s*(.+)$/,               // MM:SS - Text (no speaker)
+          /^(\d{1,2}:\d{2}(?::\d{2})?)\s+([^:]+):\s*(.+)$/,        // MM:SS Speaker: Text
+          /^(\d{1,2}:\d{2}(?::\d{2})?)\s+(.+)$/,                   // MM:SS Text (no speaker)
+        ];
+        
+        let match = null;
+        let patternIndex = -1;
+        for (let i = 0; i < patterns.length; i++) {
+          match = line.match(patterns[i]);
+          if (match) {
+            patternIndex = i;
+            break;
+          }
+        }
+        
+        if (match) {
+          let timestamp, speaker, text;
+          
+          // Handle different pattern matches based on capture groups
+          if (patternIndex === 1 || patternIndex === 3 || patternIndex === 5) {
+            // No speaker patterns: timestamp, text
+            [, timestamp, text] = match;
+            speaker = '';
+          } else {
+            // Speaker patterns: timestamp, speaker, text
+            [, timestamp, speaker, text] = match;
+          }
+          
+          entries.push({
+            timestamp: timestamp.trim(),
+            speaker: speaker ? speaker.trim() : '',
+            text: text.trim()
+          });
+          
+          console.log(`Parsed: ${timestamp.trim()} | "${speaker ? speaker.trim() : 'No speaker'}" | ${text.trim().substring(0, 50)}...`);
+        } else {
+          // If no timestamp pattern, treat as continuation of previous entry
+          if (entries.length > 0) {
+            entries[entries.length - 1].text += ' ' + line.trim();
+          }
+        }
+      }
+      
+      console.log('Parsed transcript entries:', entries.length);
+      return entries;
+    }
+    
+    // Parse transcript from text if needed
+    if (!episodeData.transcript || episodeData.transcript.length === 0) {
+      episodeData.transcript = parseTranscriptText();
+    }
+    
+    // Basic Player Controller
+    let currentMediaPlayer = null;
+    let currentChapterIndex = 0;
+    let lastSyncTime = 0;
+    
+    // Get media elements
+    const mediaBtns = document.querySelectorAll('.media-btn');
+    const audioContainer = document.querySelector('.audio-player-container');
+    const videoContainer = document.querySelector('.video-player-container');
+    const audio = document.getElementById('mainAudio');
+    const video = document.getElementById('mainVideo');
+    
+    console.log('Media elements found:', {
+      audio: !!audio,
+      video: !!video,
+      audioContainer: !!audioContainer,
+      videoContainer: !!videoContainer,
+      mediaBtns: mediaBtns.length
+    });
+    
+    // Set initial media player (prefer audio if available)
+    if (audio) {
+      currentMediaPlayer = audio;
+      console.log('Set audio as initial player');
+    } else if (video) {
+      currentMediaPlayer = video;
+      console.log('Set video as initial player');
+    }
+    
+    // Media type switching with time sync
+    mediaBtns.forEach(btn => {
+      btn.addEventListener('click', function() {
+        const type = this.dataset.type;
+        console.log('Switching to media type:', type);
+        
+        // Store current time and playback state
+        let wasPlaying = false;
+        let currentTime = 0;
+        
+        if (currentMediaPlayer) {
+          wasPlaying = !currentMediaPlayer.paused;
+          currentTime = currentMediaPlayer.currentTime;
+          if (wasPlaying) {
+            currentMediaPlayer.pause();
+          }
+        }
+        
+        // Update button states
+        mediaBtns.forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        
+        // Switch media containers and players
+        if (type === 'audio' && audio && audioContainer) {
+          audioContainer.classList.add('active');
+          if (videoContainer) videoContainer.classList.remove('active');
+          currentMediaPlayer = audio;
+          
+          // Sync time and resume playback if needed
+          audio.currentTime = currentTime;
+          if (wasPlaying) {
+            audio.play().catch(e => console.log('Audio play failed:', e));
+          }
+          console.log('Switched to audio player at time:', currentTime);
+          
+        } else if (type === 'video' && video && videoContainer) {
+          if (audioContainer) audioContainer.classList.remove('active');
+          videoContainer.classList.add('active');
+          currentMediaPlayer = video;
+          
+          // Sync time and resume playback if needed
+          video.currentTime = currentTime;
+          if (wasPlaying) {
+            video.play().catch(e => console.log('Video play failed:', e));
+          }
+          console.log('Switched to video player at time:', currentTime);
+        }
+      });
+    });
+    
+    // Chapter Management
+    function parseTimeToSeconds(timeString) {
+      if (!timeString) return 0;
+      const parts = timeString.split(':').map(Number);
+      if (parts.length === 2) {
+        return parts[0] * 60 + parts[1]; // MM:SS
+      } else if (parts.length === 3) {
+        return parts[0] * 3600 + parts[1] * 60 + parts[2]; // HH:MM:SS
+      }
+      return 0;
+    }
+    
+    // Seamless Audio Playback System
+    const ENABLE_SEAMLESS_INTERLUDES = true; // Set to true to enable seamless interludes
+    let isPlayingInterlude = false;
+    let interludeQueue = [];
+    let currentInterludeIndex = 0;
+    let pendingChapterStart = null;
+    let userPaused = false;
+    
+    let lastTriggeredChapter = -1; // Prevent multiple triggers
+    
+    function checkForChapterEnd() {
+      if (!ENABLE_SEAMLESS_INTERLUDES || !currentMediaPlayer || episodeData.chapters.length === 0 || isPlayingInterlude || userPaused) {
+        return;
+      }
+      
+      const currentTime = currentMediaPlayer.currentTime;
+      
+      // Find which chapter we're currently in
+      let currentChapterData = null;
+      let currentChapterIdx = -1;
+      
+      for (let i = 0; i < episodeData.chapters.length; i++) {
+        const chapter = episodeData.chapters[i];
+        const startTime = parseTimeToSeconds(chapter.startTime);
+        const endTime = parseTimeToSeconds(chapter.endTime);
+        
+        if (currentTime >= startTime && currentTime <= endTime) {
+          currentChapterData = chapter;
+          currentChapterIdx = i;
+          break;
+        }
+      }
+      
+      // If we're in a chapter that has interludes and we're near the end
+      if (currentChapterData && 
+          currentChapterData.interludeTracks && 
+          currentChapterData.interludeTracks.length > 0 &&
+          lastTriggeredChapter !== currentChapterIdx) {
+        
+        const startTime = parseTimeToSeconds(currentChapterData.startTime);
+        const endTime = parseTimeToSeconds(currentChapterData.endTime);
+        const chapterDuration = endTime - startTime;
+        const timeIntoChapter = currentTime - startTime;
+        
+        // Trigger when we're 95% through the chapter or within 0.5 seconds of the end
+        if (timeIntoChapter >= (chapterDuration * 0.95) || currentTime >= (endTime - 0.5)) {
+          console.log(`🎵 TRIGGER: Chapter ${currentChapterIdx + 1} ending at ${currentTime.toFixed(1)}s (${timeIntoChapter.toFixed(1)}s into chapter)`);
+          console.log(`Chapter data:`, currentChapterData);
+          console.log(`Has interludeTracks:`, !!(currentChapterData.interludeTracks && currentChapterData.interludeTracks.length));
+          if (currentChapterData.interludeTracks) {
+            console.log(`Number of interlude tracks:`, currentChapterData.interludeTracks.length);
+          }
+          lastTriggeredChapter = currentChapterIdx;
+          startInterludeSequence(currentChapterIdx);
+        }
+      }
+    }
+    
+    function startInterludeSequence(chapterIndex) {
+      const chapter = episodeData.chapters[chapterIndex];
+      if (!chapter.interludeTracks || chapter.interludeTracks.length === 0) {
+        console.log('No interludes found for chapter', chapterIndex + 1);
+        return;
+      }
+      
+      console.log(`Starting interlude sequence for chapter ${chapterIndex + 1}`);
+      
+      // Pause the main podcast
+      if (currentMediaPlayer && !currentMediaPlayer.paused) {
+        currentMediaPlayer.pause();
+      }
+      
+      isPlayingInterlude = true;
+      currentInterludeIndex = 0;
+      
+      // Set up the next chapter start time
+      const nextChapter = episodeData.chapters[chapterIndex + 1];
+      if (nextChapter) {
+        pendingChapterStart = parseTimeToSeconds(nextChapter.startTime);
+        console.log(`Will resume podcast at chapter ${chapterIndex + 2}: ${nextChapter.title} (${pendingChapterStart}s)`);
+      } else {
+        console.log('This is the last chapter, no resume point set');
+        pendingChapterStart = null;
+      }
+      
+      // Build interlude queue - prioritize Spotify if authenticated, fallback to audio
+      interludeQueue = [];
+      const interludeContainer = document.getElementById(`interlude-tracks-${chapterIndex}`);
+      console.log(`Looking for interlude container: interlude-tracks-${chapterIndex}`);
+      console.log(`Interlude container found:`, !!interludeContainer);
+      
+      if (interludeContainer) {
+        // Try to build Spotify queue first
+        if (window.spotifyAuthenticated && window.spotifyAuthenticated()) {
+          console.log('🎵 Building Spotify interlude queue');
+          const spotifyTracks = [];
+          
+          // Extract Spotify URIs from the chapter's interlude tracks
+          chapter.interludeTracks.forEach((track, index) => {
+            const spotifyLink = track.streamingLinks?.find(link => link.platform === 'spotify');
+            if (spotifyLink && spotifyLink.url) {
+              const trackMatch = spotifyLink.url.match(/track\/([a-zA-Z0-9]+)/);
+              if (trackMatch) {
+                const trackUri = `spotify:track:${trackMatch[1]}`;
+                spotifyTracks.push({
+                  type: 'spotify',
+                  uri: trackUri,
+                  title: track.songTitle,
+                  artist: track.artist
+                });
+                console.log(`Added Spotify track: ${track.songTitle} by ${track.artist}`);
+              }
+            }
+          });
+          
+          if (spotifyTracks.length > 0) {
+            interludeQueue = spotifyTracks;
+            console.log(`✅ Using ${interludeQueue.length} Spotify tracks for interludes`);
+          }
+        }
+        
+        // Fallback to audio elements if no Spotify tracks
+        if (interludeQueue.length === 0) {
+          console.log('🎧 Building fallback audio queue');
+          const fallbackAudios = interludeContainer.querySelectorAll('.fallback-audio-section audio');
+          interludeQueue = Array.from(fallbackAudios).map(audio => ({
+            type: 'audio',
+            element: audio,
+            title: 'Fallback Audio'
+          }));
+          console.log(`Found ${interludeQueue.length} fallback audio tracks`);
+        }
+      } else {
+        console.log(`❌ Could not find interlude container with ID: interlude-tracks-${chapterIndex}`);
+      }
+      
+      if (interludeQueue.length === 0) {
+        console.log('❌ No interlude tracks found, ending interlude sequence immediately');
+        endInterludeSequence();
+        return;
+      }
+      
+      // Visual feedback
+      showInterludeStatus(`🎵 Playing interlude music (Track 1 of ${interludeQueue.length})`);
+      
+      // Start first interlude track
+      playNextInterlude();
+    }
+    
+    function playNextInterlude() {
+      if (userPaused) {
+        console.log('User paused, stopping interlude sequence');
+        return;
+      }
+      
+      if (currentInterludeIndex >= interludeQueue.length) {
+        // All interludes finished, resume podcast
+        endInterludeSequence();
+        return;
+      }
+      
+      const track = interludeQueue[currentInterludeIndex];
+      if (!track) {
+        currentInterludeIndex++;
+        playNextInterlude();
+        return;
+      }
+      
+      console.log(`Playing interlude ${currentInterludeIndex + 1} of ${interludeQueue.length} (${track.type}): ${track.title || 'Unknown'}`);
+      
+      // Update status
+      const statusMessage = track.type === 'spotify' 
+        ? `🎵 Playing from Spotify (Track ${currentInterludeIndex + 1} of ${interludeQueue.length}): ${track.title} by ${track.artist}`
+        : `🎧 Playing fallback audio (Track ${currentInterludeIndex + 1} of ${interludeQueue.length})`;
+      showInterludeStatus(statusMessage);
+      
+      if (track.type === 'spotify') {
+        // Play Spotify track
+        playSpotifyInterlude(track);
+      } else {
+        // Play fallback audio
+        playFallbackInterlude(track);
+      }
+    }
+    
+    async function playSpotifyInterlude(track) {
+      try {
+        await window.playSpotifyTrack(track.uri);
+        console.log(`✅ Spotify track started: ${track.title} by ${track.artist}`);
+        
+        // Set up Spotify track end handler
+        window.handleSpotifyTrackEnd = (state) => {
+          // Check if track ended (position is at the end or paused at the end)
+          if (state && (!state.paused || state.position >= state.duration - 1000)) {
+            console.log('Spotify track ended, moving to next interlude');
+            window.handleSpotifyTrackEnd = null; // Clear handler
+            currentInterludeIndex++;
+            setTimeout(() => {
+              playNextInterlude();
+            }, 500);
+          }
+        };
+        
+      } catch (error) {
+        console.error(`Failed to play Spotify track: ${track.title}`, error);
+        // Fall back to next track
+        currentInterludeIndex++;
+        setTimeout(() => playNextInterlude(), 500);
+      }
+    }
+    
+    function playFallbackInterlude(track) {
+      const audio = track.element;
+      
+      // Set up event listener for when this track ends
+      const handleEnded = () => {
+        audio.removeEventListener('ended', handleEnded);
+        currentInterludeIndex++;
+        
+        // Small delay before next track
+        setTimeout(() => {
+          playNextInterlude();
+        }, 500);
+      };
+      
+      audio.addEventListener('ended', handleEnded);
+      audio.volume = 0.4; // Set reasonable volume
+      
+      // Play the interlude
+      audio.play().catch((error) => {
+        console.log(`Could not play fallback interlude ${currentInterludeIndex + 1}:`, error.message);
+        // Skip to next track if this one fails
+        currentInterludeIndex++;
+        setTimeout(() => playNextInterlude(), 500);
+      });
+    }
+    
+    function endInterludeSequence() {
+      console.log('Interlude sequence complete, resuming podcast...');
+      
+      isPlayingInterlude = false;
+      interludeQueue = [];
+      currentInterludeIndex = 0;
+      
+      // Resume podcast at next chapter
+      if (pendingChapterStart !== null && currentMediaPlayer && !userPaused) {
+        currentMediaPlayer.currentTime = pendingChapterStart;
+        currentMediaPlayer.play().then(() => {
+          console.log(`Resumed podcast at ${pendingChapterStart}s`);
+          hideInterludeStatus();
+        }).catch((error) => {
+          console.log('Could not resume podcast:', error.message);
+          hideInterludeStatus();
+        });
+      } else {
+        hideInterludeStatus();
+      }
+      
+      pendingChapterStart = null;
+    }
+    
+    function showInterludeStatus(message) {
+      let statusElement = document.getElementById('interlude-status');
+      if (!statusElement) {
+        statusElement = document.createElement('div');
+        statusElement.id = 'interlude-status';
+        statusElement.style.cssText = `
+          position: fixed;
+          top: 20px;
+          right: 20px;
+          background: #007acc;
+          color: white;
+          padding: 1rem;
+          border-radius: 8px;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+          z-index: 1000;
+          font-weight: 500;
+          max-width: 300px;
+        `;
+        document.body.appendChild(statusElement);
+      }
+      statusElement.textContent = message;
+      statusElement.style.display = 'block';
+    }
+    
+    function hideInterludeStatus() {
+      const statusElement = document.getElementById('interlude-status');
+      if (statusElement) {
+        statusElement.style.display = 'none';
+      }
+    }
+    
+    function stopAllPlayback() {
+      console.log('stopAllPlayback called');
+      userPaused = true;
+      
+      // Stop any playing interlude first
+      if (isPlayingInterlude && interludeQueue[currentInterludeIndex]) {
+        const currentTrack = interludeQueue[currentInterludeIndex];
+        
+        if (currentTrack.type === 'spotify') {
+          // Stop Spotify playback
+          window.pauseSpotifyPlayback().catch(e => console.log('Error pausing Spotify:', e));
+          window.handleSpotifyTrackEnd = null; // Clear handler
+        } else if (currentTrack.element && !currentTrack.element.paused) {
+          // Stop fallback audio
+          currentTrack.element.pause();
+        }
+      }
+      
+      hideInterludeStatus();
+      console.log('All playback stopped by user');
+    }
+    
+    function resumePlayback() {
+      console.log('resumePlayback called, isPlayingInterlude:', isPlayingInterlude);
+      userPaused = false;
+      
+      if (isPlayingInterlude) {
+        // Resume interlude sequence
+        console.log('Resuming interlude playback');
+        showInterludeStatus(`🎵 Playing interlude music (Track ${currentInterludeIndex + 1} of ${interludeQueue.length})`);
+        playNextInterlude();
+      }
+      // Don't manually play the main podcast here - let the browser's native controls handle it
+    }
+    
+    function updateCurrentChapter() {
+      if (!currentMediaPlayer || episodeData.chapters.length === 0 || isPlayingInterlude) {
+        return;
+      }
+      
+      const currentTime = currentMediaPlayer.currentTime;
+      
+      // Don't update too frequently
+      if (Math.abs(currentTime - lastSyncTime) < 0.5) {
+        return;
+      }
+      lastSyncTime = currentTime;
+      
+      // Find current chapter for highlighting
+      let newChapterIndex = -1;
+      for (let i = 0; i < episodeData.chapters.length; i++) {
+        const chapter = episodeData.chapters[i];
+        const startTime = parseTimeToSeconds(chapter.startTime);
+        const endTime = parseTimeToSeconds(chapter.endTime);
+        
+        if (currentTime >= startTime && currentTime <= endTime) {
+          newChapterIndex = i;
+          break;
+        }
+      }
+      
+      // Update chapter highlighting and reset trigger when switching chapters
+      if (newChapterIndex !== currentChapterIndex) {
+        const chapterItems = document.querySelectorAll('.chapter-item');
+        
+        // Remove previous highlighting
+        chapterItems.forEach(item => item.classList.remove('active'));
+        
+        // Add new highlighting
+        if (newChapterIndex >= 0 && chapterItems[newChapterIndex]) {
+          chapterItems[newChapterIndex].classList.add('active');
+          console.log('Now in chapter:', episodeData.chapters[newChapterIndex].title);
+        }
+        
+        // Reset trigger when moving to a new chapter
+        lastTriggeredChapter = -1;
+        currentChapterIndex = newChapterIndex;
+      }
+      
+      // Only check for chapter end after chapter highlighting is updated (if enabled)
+      if (ENABLE_SEAMLESS_INTERLUDES) {
+        try {
+          checkForChapterEnd();
+        } catch (error) {
+          console.error('Error in checkForChapterEnd:', error);
+          // Disable interlude system if there's an error
+          isPlayingInterlude = false;
+        }
+      }
+    }
+    
+    // Chapter navigation buttons
+    const jumpButtons = document.querySelectorAll('.jump-to-chapter');
+    jumpButtons.forEach((button, index) => {
+      button.addEventListener('click', function() {
+        const startTime = parseTimeToSeconds(this.dataset.startTime);
+        if (currentMediaPlayer) {
+          currentMediaPlayer.currentTime = startTime;
+          console.log(`Jumped to chapter ${index + 1} at ${startTime}s`);
+          
+          // Highlight the chapter immediately
+          const chapterItems = document.querySelectorAll('.chapter-item');
+          chapterItems.forEach(item => item.classList.remove('active'));
+          if (chapterItems[index]) {
+            chapterItems[index].classList.add('active');
+          }
+        }
+      });
+    });
+    
+    // Chapter item click navigation
+    const chapterItems = document.querySelectorAll('.chapter-item');
+    chapterItems.forEach((item, index) => {
+      item.addEventListener('click', function() {
+        const chapter = episodeData.chapters[index];
+        if (chapter && currentMediaPlayer) {
+          const startTime = parseTimeToSeconds(chapter.startTime);
+          currentMediaPlayer.currentTime = startTime;
+          console.log(`Clicked to chapter ${index + 1}: ${chapter.title}`);
+        }
+      });
+    });
+    
+    // Add time update listeners for chapter and transcript tracking
+    if (audio) {
+      audio.addEventListener('timeupdate', handleTimeUpdate);
+      audio.addEventListener('loadedmetadata', () => {
+        console.log('Audio loaded, duration:', audio.duration);
+      });
+      
+      // Hook into play/pause for seamless control (only if enabled)
+      if (ENABLE_SEAMLESS_INTERLUDES) {
+        audio.addEventListener('play', () => {
+          console.log('Main audio play triggered');
+          if (!isPlayingInterlude) { // Only resume if we're not in the middle of interludes
+            resumePlayback();
+          }
+        });
+        
+        audio.addEventListener('pause', () => {
+          console.log('Main audio pause triggered, isPlayingInterlude:', isPlayingInterlude);
+          if (!isPlayingInterlude) { // Only stop if we're not transitioning to interludes
+            stopAllPlayback();
+          } else {
+            console.log('Ignoring pause event - transitioning to interlude playback');
+          }
+        });
+      }
+    }
+    if (video) {
+      video.addEventListener('timeupdate', handleTimeUpdate);
+      video.addEventListener('loadedmetadata', () => {
+        console.log('Video loaded, duration:', video.duration);
+      });
+      
+      // Hook into play/pause for seamless control (only if enabled)
+      if (ENABLE_SEAMLESS_INTERLUDES) {
+        video.addEventListener('play', () => {
+          console.log('Main video play triggered');
+          if (!isPlayingInterlude) { // Only resume if we're not in the middle of interludes
+            resumePlayback();
+          }
+        });
+        
+        video.addEventListener('pause', () => {
+          console.log('Main video pause triggered, isPlayingInterlude:', isPlayingInterlude);
+          if (!isPlayingInterlude) { // Only stop if we're not transitioning to interludes
+            stopAllPlayback();
+          } else {
+            console.log('Ignoring pause event - transitioning to interlude playback');
+          }
+        });
+      }
+    }
+    
+    // Transcript toggle
+    const transcriptToggle = document.getElementById('showTranscript');
+    const transcriptSection = document.querySelector('.transcript-section');
+    
+    if (transcriptToggle && transcriptSection) {
+      transcriptToggle.addEventListener('change', function() {
+        if (this.checked) {
+          transcriptSection.style.display = 'block';
+          console.log('Transcript shown');
+        } else {
+          transcriptSection.style.display = 'none';
+          console.log('Transcript hidden');
+        }
+      });
+    }
+    
+    // Interactive transcript functionality
+    function updateTranscriptSync() {
+      if (!currentMediaPlayer) return;
+      
+      const currentTime = currentMediaPlayer.currentTime;
+      const transcriptEntries = document.querySelectorAll('.transcript-entry');
+      
+      if (transcriptEntries.length === 0) return;
+      
+      console.log(`Syncing transcript at ${currentTime.toFixed(1)}s`);
+      
+      // Find the current transcript entry
+      let currentEntry = null;
+      let bestMatch = null;
+      let closestTime = -1;
+      
+      for (let i = 0; i < transcriptEntries.length; i++) {
+        const entry = transcriptEntries[i];
+        const timestamp = entry.dataset.timestamp;
+        const entryTime = parseTimeToSeconds(timestamp);
+        
+        console.log(`Entry ${i}: ${timestamp} (${entryTime}s)`);
+        
+        // Find the entry that starts at or before current time
+        if (entryTime <= currentTime) {
+          if (entryTime > closestTime) {
+            closestTime = entryTime;
+            bestMatch = entry;
+          }
+        }
+      }
+      
+      // If we're at the very beginning (less than first timestamp), show first entry
+      if (!bestMatch && currentTime < 5) {
+        bestMatch = transcriptEntries[0];
+        console.log('Using first entry for beginning of episode');
+      }
+      
+      currentEntry = bestMatch;
+      
+      // Update highlighting
+      transcriptEntries.forEach(entry => entry.classList.remove('current'));
+      if (currentEntry) {
+        currentEntry.classList.add('current');
+        console.log(`Highlighting: ${currentEntry.dataset.timestamp}`);
+        
+        // Auto-scroll to current entry if transcript is visible
+        const transcriptSection = document.querySelector('.transcript-section');
+        const transcriptContent = document.querySelector('.transcript-content');
+        if (transcriptSection && transcriptSection.style.display !== 'none' && transcriptContent) {
+          // Calculate position within the transcript container
+          const entryTop = currentEntry.offsetTop;
+          const containerHeight = transcriptContent.clientHeight;
+          const scrollPosition = entryTop - (containerHeight / 4); // Position entry at top quarter of container
+          
+          transcriptContent.scrollTo({
+            top: Math.max(0, scrollPosition),
+            behavior: 'smooth'
+          });
+        }
+      } else {
+        console.log('No transcript entry found for current time');
+      }
+    }
+    
+    // Transcript timestamp navigation
+    const timestampElements = document.querySelectorAll('.timestamp');
+    timestampElements.forEach(timestamp => {
+      timestamp.addEventListener('click', function() {
+        const timeString = this.textContent;
+        const seconds = parseTimeToSeconds(timeString);
+        if (currentMediaPlayer) {
+          currentMediaPlayer.currentTime = seconds;
+          console.log(`Jumped to transcript time: ${timeString} (${seconds}s)`);
+        }
+      });
+    });
+    
+    // Add transcript sync to time update listeners with throttling
+    let lastTranscriptUpdate = 0;
+    function handleTimeUpdate() {
+      updateCurrentChapter();
+      
+      // Throttle transcript updates to every 0.5 seconds
+      const now = Date.now();
+      if (now - lastTranscriptUpdate > 500) {
+        updateTranscriptSync();
+        lastTranscriptUpdate = now;
+      }
+    }
+    
+    console.log('Phase 1 podcast player initialized - Basic playback with chapter navigation');
+  });
+</script>
+
+<!-- Spotify Web Playback SDK -->
+<script src="https://sdk.scdn.co/spotify-player.js"></script>
+<script type="module">
+  // Spotify Web Playback SDK Integration
+  let spotifyPlayer = null;
+  let spotifyDeviceId = null;
+  let spotifyAccessToken = null;
+  let spotifyAuthenticated = false;
+
+  // Spotify App Configuration (you'll need to register your app)
+  const SPOTIFY_CLIENT_ID = 'your_client_id_here'; // Replace with your actual client ID
+  const SPOTIFY_REDIRECT_URI = window.location.origin + window.location.pathname;
+  const SPOTIFY_SCOPES = 'streaming user-read-email user-read-private user-modify-playback-state user-read-playback-state';
+
+  // Check if user is returning from Spotify OAuth
+  function checkSpotifyCallback() {
+    const hash = window.location.hash.substring(1);
+    const params = new URLSearchParams(hash);
+    const accessToken = params.get('access_token');
+    
+    if (accessToken) {
+      spotifyAccessToken = accessToken;
+      localStorage.setItem('spotify_access_token', accessToken);
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+      initializeSpotifyPlayer();
+      return true;
+    }
+    
+    // Check if we have a stored token
+    const storedToken = localStorage.getItem('spotify_access_token');
+    if (storedToken) {
+      spotifyAccessToken = storedToken;
+      initializeSpotifyPlayer();
+      return true;
+    }
+    
+    return false;
+  }
+
+  // Authenticate with Spotify
+  function authenticateSpotify() {
+    const authUrl = `https://accounts.spotify.com/authorize?` +
+      `client_id=${SPOTIFY_CLIENT_ID}&` +
+      `response_type=token&` +
+      `redirect_uri=${encodeURIComponent(SPOTIFY_REDIRECT_URI)}&` +
+      `scope=${encodeURIComponent(SPOTIFY_SCOPES)}`;
+    
+    window.location.href = authUrl;
+  }
+
+  // Initialize Spotify Player
+  function initializeSpotifyPlayer() {
+    if (!spotifyAccessToken) {
+      console.log('No Spotify access token available');
+      return;
+    }
+
+    window.onSpotifyWebPlaybackSDKReady = () => {
+      console.log('Spotify Web Playback SDK Ready');
+      
+      spotifyPlayer = new Spotify.Player({
+        name: 'Acerbic Inq Podcast Player',
+        getOAuthToken: cb => { cb(spotifyAccessToken); },
+        volume: 0.4 // Match our fallback audio volume
+      });
+
+      // Error handling
+      spotifyPlayer.addListener('initialization_error', ({ message }) => {
+        console.error('Spotify initialization error:', message);
+      });
+
+      spotifyPlayer.addListener('authentication_error', ({ message }) => {
+        console.error('Spotify authentication error:', message);
+        localStorage.removeItem('spotify_access_token');
+        spotifyAuthenticated = false;
+      });
+
+      spotifyPlayer.addListener('account_error', ({ message }) => {
+        console.error('Spotify account error:', message);
+      });
+
+      spotifyPlayer.addListener('playback_error', ({ message }) => {
+        console.error('Spotify playback error:', message);
+      });
+
+      // Ready
+      spotifyPlayer.addListener('ready', ({ device_id }) => {
+        console.log('Spotify player ready with Device ID:', device_id);
+        spotifyDeviceId = device_id;
+        spotifyAuthenticated = true;
+        updateSpotifyUI();
+      });
+
+      // Not Ready
+      spotifyPlayer.addListener('not_ready', ({ device_id }) => {
+        console.log('Spotify player not ready with Device ID:', device_id);
+        spotifyAuthenticated = false;
+      });
+
+      // Track ended
+      spotifyPlayer.addListener('player_state_changed', (state) => {
+        if (state) {
+          console.log('Spotify player state changed:', state);
+          // Handle track end for interlude sequence
+          if (window.handleSpotifyTrackEnd) {
+            window.handleSpotifyTrackEnd(state);
+          }
+        }
+      });
+
+      // Connect to the player!
+      spotifyPlayer.connect();
+    };
+
+    // If SDK is already loaded, initialize immediately
+    if (window.Spotify) {
+      window.onSpotifyWebPlaybackSDKReady();
+    }
+  }
+
+  // Play a Spotify track
+  async function playSpotifyTrack(trackUri) {
+    if (!spotifyAuthenticated || !spotifyDeviceId || !spotifyAccessToken) {
+      throw new Error('Spotify not authenticated or ready');
+    }
+
+    try {
+      const response = await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${spotifyDeviceId}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          uris: [trackUri]
+        }),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${spotifyAccessToken}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Spotify API error: ${response.status}`);
+      }
+
+      console.log('Spotify track started:', trackUri);
+    } catch (error) {
+      console.error('Error playing Spotify track:', error);
+      throw error;
+    }
+  }
+
+  // Pause Spotify playback
+  async function pauseSpotifyPlayback() {
+    if (!spotifyAuthenticated || !spotifyAccessToken) {
+      return;
+    }
+
+    try {
+      await fetch('https://api.spotify.com/v1/me/player/pause', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${spotifyAccessToken}`
+        }
+      });
+      console.log('Spotify playback paused');
+    } catch (error) {
+      console.error('Error pausing Spotify:', error);
+    }
+  }
+
+  // Update UI to show Spotify status
+  function updateSpotifyUI() {
+    // Add Spotify authentication status to interludes
+    const interludeSections = document.querySelectorAll('.interlude-section');
+    interludeSections.forEach(section => {
+      let statusElement = section.querySelector('.spotify-status');
+      if (!statusElement) {
+        statusElement = document.createElement('div');
+        statusElement.className = 'spotify-status';
+        statusElement.style.cssText = `
+          margin-bottom: 0.5rem;
+          padding: 0.5rem;
+          border-radius: 6px;
+          font-size: 0.9rem;
+          font-weight: 500;
+        `;
+        section.insertBefore(statusElement, section.firstChild);
+      }
+
+      if (spotifyAuthenticated) {
+        statusElement.innerHTML = '✅ Spotify connected - Interludes will auto-play from Spotify';
+        statusElement.style.background = 'rgba(29, 185, 84, 0.1)';
+        statusElement.style.color = '#1db954';
+        statusElement.style.border = '1px solid #1db954';
+      } else {
+        statusElement.innerHTML = `
+          <div>❌ Spotify not connected - <button onclick="authenticateSpotify()" style="background: #1db954; color: white; border: none; padding: 0.25rem 0.5rem; border-radius: 4px; cursor: pointer;">Connect Spotify</button></div>
+          <div style="font-size: 0.8rem; margin-top: 0.25rem;">Auto-play will use fallback audio instead</div>
+        `;
+        statusElement.style.background = 'rgba(255, 107, 53, 0.1)';
+        statusElement.style.color = '#ff6b35';
+        statusElement.style.border = '1px solid #ff6b35';
+      }
+    });
+  }
+
+  // Make functions globally available
+  window.authenticateSpotify = authenticateSpotify;
+  window.playSpotifyTrack = playSpotifyTrack;
+  window.pauseSpotifyPlayback = pauseSpotifyPlayback;
+  window.spotifyPlayer = () => spotifyPlayer;
+  window.spotifyAuthenticated = () => spotifyAuthenticated;
+
+  // Initialize on page load
+  document.addEventListener('DOMContentLoaded', () => {
+    checkSpotifyCallback();
+    updateSpotifyUI();
+  });
+</script>

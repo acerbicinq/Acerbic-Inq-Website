@@ -1,0 +1,319 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { client, urlFor } from "../../lib/sanity";
+import SettingsPanel from "../../components/SettingsPanel.jsx";
+import WaveSurferPlayer from "../../components/WaveSurferPlayer.jsx";
+import PortableText from "../../components/PortableText.jsx";
+
+export async function getStaticPaths() {
+  const musicPosts = await client.fetch(`
+    *[_type == "musicPost"] {
+      slug,
+      title
+    }
+  `);
+  
+  return musicPosts.map((post) => ({
+    params: { slug: post.slug.current },
+  }));
+}
+
+const { slug } = Astro.params;
+
+const musicPost = await client.fetch(`
+  *[_type == "musicPost" && slug.current == $slug][0] {
+    _id,
+    title,
+    slug,
+    publishedAt,
+    excerpt,
+    coverArt,
+    releaseType,
+    tracks[]{
+      trackNumber,
+      trackTitle,
+      audioFile{
+        asset->{
+          _id,
+          url
+        }
+      },
+      duration,
+      lyrics,
+      trackStreamingLinks
+    },
+    streamingLinks,
+    credits,
+    body
+  }
+`, { slug });
+
+if (!musicPost) {
+  return Astro.redirect("/404");
+}
+
+const pageTitle = musicPost.title;
+---
+
+<BaseLayout pageTitle={pageTitle}>
+  <article class="music-post-detail">
+    <header class="post-header">
+      {musicPost.coverArt && (
+        <img 
+          src={urlFor(musicPost.coverArt).width(600).height(600).url()} 
+          alt={`Cover art for ${musicPost.title}`}
+          class="cover-art-large"
+        />
+      )}
+      <div class="post-meta">
+        <h1>{musicPost.title}</h1>
+        {musicPost.releaseType && (
+          <span class="release-type">{musicPost.releaseType.toUpperCase()}</span>
+        )}
+        {musicPost.excerpt && <p class="excerpt">{musicPost.excerpt}</p>}
+        <time datetime={musicPost.publishedAt}>
+          {new Date(musicPost.publishedAt).toLocaleDateString()}
+        </time>
+      </div>
+    </header>
+
+    <div class="post-content">
+      {musicPost.tracks && musicPost.tracks.length > 0 && (
+        <div class="tracks-section">
+          <WaveSurferPlayer 
+            tracks={musicPost.tracks.map((track, index) => ({
+              audioUrl: track.audioFile?.asset?.url,
+              title: track.trackTitle,
+              trackNumber: track.trackNumber || index + 1,
+              lyrics: track.lyrics,
+              syncedLyrics: track.syncedLyrics || null,
+              trackStreamingLinks: track.trackStreamingLinks || []
+            }))}
+            albumTitle={musicPost.title}
+            artist="Acerbic Inq"
+            coverArt={musicPost.coverArt ? urlFor(musicPost.coverArt).width(300).height(300).url() : null}
+            streamingLinks={musicPost.streamingLinks || []}
+            client:load
+          />
+        </div>
+      )}
+      
+      {musicPost.streamingLinks && musicPost.streamingLinks.length > 0 && (
+        <div class="streaming-section">
+          <h2>Stream Full {musicPost.releaseType || 'Release'}</h2>
+          <div class="streaming-links">
+            {musicPost.streamingLinks.map((link) => (
+              <a href={link.url} target="_blank" rel="noopener noreferrer" class="streaming-link">
+                {link.platform.charAt(0).toUpperCase() + link.platform.slice(1).replace('-', ' ')}
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {musicPost.body && (
+        <div class="article-content">
+          <PortableText value={musicPost.body} client:load />
+        </div>
+      )}
+
+      {musicPost.credits && (
+        <div class="credits-section">
+          <h2>Credits</h2>
+          <p class="credits">{musicPost.credits}</p>
+        </div>
+      )}
+    </div>
+
+    <nav class="post-navigation">
+      <a href="/music" class="back-link">← Back to Music</a>
+    </nav>
+  </article>
+  
+  <!-- Add floating settings panel -->
+  <SettingsPanel client:load />
+</BaseLayout>
+
+<style>
+  .music-post-detail {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+    background: linear-gradient(135deg, var(--color-blush), var(--color-sage));
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+  }
+  
+  .post-header {
+    display: grid;
+    grid-template-columns: 350px 1fr;
+    gap: 3rem;
+    margin-bottom: 3rem;
+    padding: 2rem;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 16px;
+  }
+  
+  .cover-art-large {
+    width: 100%;
+    height: 300px;
+    object-fit: cover;
+    border-radius: 8px;
+  }
+  
+  .post-meta h1 {
+    margin: 0 0 1rem 0;
+    font-size: 2rem;
+  }
+  
+  .release-type {
+    background: var(--color-plum);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 1rem 0;
+    display: inline-block;
+  }
+  
+  .excerpt {
+    color: #666;
+    margin: 1rem 0;
+    line-height: 1.5;
+    font-size: 1.1rem;
+  }
+  
+  .post-content {
+    margin-bottom: 2rem;
+  }
+  
+  .tracks-section,
+  .streaming-section,
+  .article-content,
+  .credits-section {
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background: #f9f9f9;
+    border-radius: 8px;
+  }
+  
+  .tracks-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  
+  .track-item {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    border: 1px solid #e1e1e1;
+  }
+  
+  .track-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+  
+  .track-header h3 {
+    margin: 0;
+    color: #007acc;
+  }
+  
+  .track-duration {
+    color: #666;
+    font-size: 0.9rem;
+  }
+  
+  .track-player {
+    margin-bottom: 1rem;
+  }
+  
+  .track-streaming {
+    margin-bottom: 1rem;
+  }
+  
+  .track-streaming h4 {
+    margin: 0 0 0.5rem 0;
+    font-size: 0.9rem;
+    color: #666;
+  }
+  
+  .track-lyrics {
+    margin-top: 1rem;
+  }
+  
+  .track-lyrics h4 {
+    margin: 0 0 0.5rem 0;
+    font-size: 0.9rem;
+    color: #666;
+  }
+  
+  .audio-player {
+    width: 100%;
+    margin-top: 1rem;
+  }
+  
+  .streaming-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 1rem;
+  }
+  
+  .streaming-link {
+    background: #007acc;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    text-decoration: none;
+    font-weight: bold;
+  }
+  
+  .streaming-link:hover {
+    background: #005a9e;
+  }
+  
+  .lyrics {
+    white-space: pre-wrap;
+    font-family: 'Georgia', serif;
+    line-height: 1.6;
+    margin-top: 1rem;
+  }
+  
+  .credits {
+    font-style: italic;
+    color: #666;
+    margin-top: 1rem;
+  }
+  
+  .back-link {
+    display: inline-block;
+    background: #f0f0f0;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    text-decoration: none;
+    color: #333;
+  }
+  
+  .back-link:hover {
+    background: #e0e0e0;
+  }
+  
+  @media (max-width: 768px) {
+    .post-header {
+      grid-template-columns: 1fr;
+      text-align: center;
+    }
+    
+    .cover-art-large {
+      max-width: 300px;
+      margin: 0 auto;
+    }
+  }
+</style>
