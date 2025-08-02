@@ -1536,7 +1536,6 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
 </script>
 
 <!-- Spotify Web Playback SDK -->
-<script src="https://sdk.scdn.co/spotify-player.js"></script>
 <script type="module">
   // Spotify Web Playback SDK Integration
   let spotifyPlayer = null;
@@ -1593,6 +1592,7 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
       return;
     }
 
+    // Define the callback function first
     window.onSpotifyWebPlaybackSDKReady = () => {
       console.log('Spotify Web Playback SDK Ready');
       
@@ -1650,8 +1650,17 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
       spotifyPlayer.connect();
     };
 
-    // If SDK is already loaded, initialize immediately
-    if (window.Spotify) {
+    // Load Spotify SDK after defining the callback
+    if (!document.querySelector('script[src*="spotify-player.js"]')) {
+      const script = document.createElement('script');
+      script.src = 'https://sdk.scdn.co/spotify-player.js';
+      script.onload = () => {
+        console.log('Spotify SDK loaded');
+        // SDK will call our onSpotifyWebPlaybackSDKReady when ready
+      };
+      document.head.appendChild(script);
+    } else if (window.Spotify) {
+      // SDK already loaded, initialize immediately
       window.onSpotifyWebPlaybackSDKReady();
     }
   }
