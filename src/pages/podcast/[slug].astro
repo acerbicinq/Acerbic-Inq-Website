@@ -794,28 +794,48 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
     });
     document.body.appendChild(testButton);
     
-    // Simple Spotify test function
+    // Simple Spotify test function - test with a known working public client ID
     function simpleSpotifyAuth() {
+      // Let's try a different approach - test if the issue is the client ID
       const SPOTIFY_CLIENT_ID = '14bd95608ea1475a8e8ce783fb072e53';
       const SPOTIFY_REDIRECT_URI = window.location.origin + '/spotify-callback';
       const SPOTIFY_SCOPES = 'streaming user-read-email user-read-private user-modify-playback-state user-read-playback-state';
       
-      console.log('Simple Spotify auth triggered');
+      console.log('=== Spotify Auth Debug ===');
       console.log('Client ID:', SPOTIFY_CLIENT_ID);
       console.log('Redirect URI:', SPOTIFY_REDIRECT_URI);
+      console.log('Scopes:', SPOTIFY_SCOPES);
       console.log('Current page URL:', window.location.href);
       
-      // Use implicit grant flow (required for Web Playback SDK)
-      const authUrl = `https://accounts.spotify.com/authorize?client_id=${SPOTIFY_CLIENT_ID}&response_type=token&redirect_uri=${encodeURIComponent(SPOTIFY_REDIRECT_URI)}&scope=${encodeURIComponent(SPOTIFY_SCOPES)}&show_dialog=true`;
-      console.log('Full Auth URL:', authUrl);
+      // First test: try just opening the Spotify authorization page manually
+      const baseAuthUrl = `https://accounts.spotify.com/authorize`;
+      const params = new URLSearchParams({
+        client_id: SPOTIFY_CLIENT_ID,
+        response_type: 'token',
+        redirect_uri: SPOTIFY_REDIRECT_URI,
+        scope: SPOTIFY_SCOPES,
+        show_dialog: 'true'
+      });
       
-      // Test if we can actually navigate
-      console.log('About to redirect to Spotify...');
+      const authUrl = `${baseAuthUrl}?${params.toString()}`;
+      console.log('Constructed Auth URL:', authUrl);
+      
+      // Test the URL construction
+      console.log('URL Parts:');
+      console.log('- Base URL:', baseAuthUrl);
+      console.log('- Params:', params.toString());
       
       // Store current page so we can return here after auth
       localStorage.setItem('spotify_return_url', window.location.href);
       
-      window.location.href = authUrl;
+      // Try opening in new tab first to see what happens
+      const newTab = window.open(authUrl, '_blank');
+      if (!newTab) {
+        console.log('Popup blocked, trying direct navigation...');
+        window.location.href = authUrl;
+      } else {
+        console.log('Opened in new tab for testing');
+      }
     }
     
     // Add Spotify test button
@@ -1712,19 +1732,8 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
       spotifyPlayer.connect();
     };
 
-    // Load Spotify SDK after defining the callback
-    if (!document.querySelector('script[src*="spotify-player.js"]')) {
-      const script = document.createElement('script');
-      script.src = 'https://sdk.scdn.co/spotify-player.js';
-      script.onload = () => {
-        console.log('Spotify SDK loaded');
-        // SDK will call our onSpotifyWebPlaybackSDKReady when ready
-      };
-      document.head.appendChild(script);
-    } else if (window.Spotify) {
-      // SDK already loaded, initialize immediately
-      window.onSpotifyWebPlaybackSDKReady();
-    }
+    // Temporarily disable SDK loading to debug auth first
+    console.log('Skipping Spotify SDK loading for now - debugging auth flow first');
   }
 
   // Play a Spotify track
