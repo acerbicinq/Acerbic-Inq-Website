@@ -18,7 +18,8 @@
       <div id="auth-url"></div>
     </div>
     
-    <button id="test-auth">Test Spotify Auth</button>
+    <button id="test-implicit">Test Implicit Grant (response_type=token)</button>
+    <button id="test-code">Test Authorization Code (response_type=code)</button>
     
     <script>
       const SPOTIFY_CLIENT_ID = '14bd95608ea1475a8e8ce783fb072e53';
@@ -29,15 +30,29 @@
       document.getElementById('client-id').textContent = `Client ID: ${SPOTIFY_CLIENT_ID}`;
       document.getElementById('redirect-uri').textContent = `Redirect URI: ${SPOTIFY_REDIRECT_URI}`;
       
-      const authUrl = `https://accounts.spotify.com/authorize?client_id=${SPOTIFY_CLIENT_ID}&response_type=token&redirect_uri=${encodeURIComponent(SPOTIFY_REDIRECT_URI)}&scope=${encodeURIComponent(SPOTIFY_SCOPES)}`;
-      document.getElementById('auth-url').innerHTML = `<strong>Auth URL:</strong><br><a href="${authUrl}" target="_blank">${authUrl}</a>`;
+      // Test implicit grant (what we need for Web Playback SDK)
+      const implicitUrl = `https://accounts.spotify.com/authorize?client_id=${SPOTIFY_CLIENT_ID}&response_type=token&redirect_uri=${encodeURIComponent(SPOTIFY_REDIRECT_URI)}&scope=${encodeURIComponent(SPOTIFY_SCOPES)}`;
       
-      document.getElementById('test-auth').addEventListener('click', function() {
-        console.log('Testing Spotify auth...');
-        console.log('Auth URL:', authUrl);
-        
-        // Try direct navigation
-        window.location.href = authUrl;
+      // Test authorization code flow (fallback)
+      const codeUrl = `https://accounts.spotify.com/authorize?client_id=${SPOTIFY_CLIENT_ID}&response_type=code&redirect_uri=${encodeURIComponent(SPOTIFY_REDIRECT_URI)}&scope=${encodeURIComponent(SPOTIFY_SCOPES)}`;
+      
+      document.getElementById('auth-url').innerHTML = `
+        <strong>Implicit Grant URL:</strong><br>
+        <a href="${implicitUrl}" target="_blank">${implicitUrl}</a><br><br>
+        <strong>Code Grant URL:</strong><br>
+        <a href="${codeUrl}" target="_blank">${codeUrl}</a>
+      `;
+      
+      document.getElementById('test-implicit').addEventListener('click', function() {
+        console.log('Testing implicit grant...');
+        console.log('Auth URL:', implicitUrl);
+        window.location.href = implicitUrl;
+      });
+      
+      document.getElementById('test-code').addEventListener('click', function() {
+        console.log('Testing authorization code...');
+        console.log('Auth URL:', codeUrl);
+        window.location.href = codeUrl;
       });
     </script>
   </body>
