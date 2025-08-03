@@ -1058,18 +1058,30 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
           
           // Extract YouTube URLs from the chapter's interlude tracks
           chapter.interludeTracks.forEach((track, index) => {
+            console.log(`Processing track ${index}:`, track);
+            console.log(`Track songTitle: "${track.songTitle}"`);
+            console.log(`Track artist: "${track.artist}"`);
+            console.log(`Track streamingLinks:`, track.streamingLinks);
+            
             const youtubeLink = track.streamingLinks?.find(link => 
               link.platform === 'youtube-music' || link.platform === 'youtube'
             );
+            
+            console.log(`Found YouTube link:`, youtubeLink);
+            
             if (youtubeLink && youtubeLink.url) {
-              youtubeTracks.push({
+              const trackData = {
                 type: 'youtube',
                 url: youtubeLink.url,
                 title: track.songTitle,
                 artist: track.artist,
                 streamingLinks: track.streamingLinks
-              });
-              console.log(`Added YouTube track: ${track.songTitle} by ${track.artist}`);
+              };
+              
+              youtubeTracks.push(trackData);
+              console.log(`✅ Added YouTube track ${index}:`, trackData);
+            } else {
+              console.log(`❌ No valid YouTube link for track ${index}`);
             }
           });
           
@@ -1135,15 +1147,23 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
       showInterludeStatus(statusMessage);
       
       if (track.type === 'youtube') {
-        // Play YouTube track
-        playYouTubeInterlude(track).then(() => {
-          console.log('YouTube track ended, moving to next interlude');
+        // Play YouTube track with detailed logging
+        console.log('About to play YouTube track:', {
+          title: track.title,
+          artist: track.artist,
+          url: track.url,
+          streamingLinks: track.streamingLinks
+        });
+        
+        window.playYouTubeInterlude(track).then(() => {
+          console.log('YouTube track ended successfully, moving to next interlude');
           currentInterludeIndex++;
           setTimeout(() => {
             playNextInterlude();
           }, 500);
         }).catch((error) => {
-          console.error(`Failed to play YouTube track: ${track.title}`, error);
+          console.error(`Failed to play YouTube track: ${track.title || 'Unknown'}`, error);
+          console.error('Track data:', track);
           // Fall back to next track
           currentInterludeIndex++;
           setTimeout(() => playNextInterlude(), 500);
@@ -1563,31 +1583,58 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
   // Play YouTube interlude
   async function playYouTubeInterlude(track) {
     return new Promise((resolve, reject) => {
+      console.log('=== YouTube Interlude Debug ===');
+      console.log('Received track data:', track);
+      console.log('Track title:', track.title);
+      console.log('Track songTitle:', track.songTitle);
+      console.log('Track artist:', track.artist);
+      console.log('Track URL:', track.url);
+      console.log('Track streamingLinks:', track.streamingLinks);
+      
       if (!youtubeInterludeSystem.youtubeAPIReady) {
         console.error('YouTube API not ready');
         reject(new Error('YouTube API not ready'));
         return;
       }
 
-      // Find YouTube link in streaming links
-      const youtubeLink = track.streamingLinks?.find(link => 
-        link.platform === 'youtube-music' || link.platform === 'youtube'
-      );
+      // Try multiple ways to find the YouTube URL
+      let youtubeUrl = null;
+      let videoId = null;
+      
+      // Method 1: Direct URL property
+      if (track.url) {
+        videoId = getYouTubeVideoId(track.url);
+        if (videoId) {
+          youtubeUrl = track.url;
+          console.log('Found YouTube URL via direct URL property:', youtubeUrl);
+        }
+      }
+      
+      // Method 2: Find in streaming links
+      if (!youtubeUrl && track.streamingLinks) {
+        const youtubeLink = track.streamingLinks.find(link => 
+          link.platform === 'youtube-music' || link.platform === 'youtube'
+        );
+        
+        if (youtubeLink) {
+          videoId = getYouTubeVideoId(youtubeLink.url);
+          if (videoId) {
+            youtubeUrl = youtubeLink.url;
+            console.log('Found YouTube URL via streaming links:', youtubeUrl);
+          }
+        }
+      }
 
-      if (!youtubeLink) {
-        console.log('No YouTube link found for track:', track.songTitle);
+      if (!youtubeUrl || !videoId) {
+        console.error('No valid YouTube URL found for track');
+        console.error('Track data:', track);
         reject(new Error('No YouTube link'));
         return;
       }
 
-      const videoId = getYouTubeVideoId(youtubeLink.url);
-      if (!videoId) {
-        console.error('Could not extract video ID from:', youtubeLink.url);
-        reject(new Error('Invalid YouTube URL'));
-        return;
-      }
-
-      console.log(`Playing YouTube track: ${track.songTitle} (${videoId})`);
+      const trackTitle = track.title || track.songTitle || 'Unknown Track';
+      const trackArtist = track.artist || 'Unknown Artist';
+      console.log(`Playing YouTube track: ${trackTitle} by ${trackArtist} (${videoId})`);
 
       // Create hidden player container
       let playerContainer = document.getElementById('youtube-interlude-player');
