@@ -190,24 +190,6 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
                           <div class="streaming-options">
                             {track.streamingLinks?.map((link, linkIndex) => (
                               <div class="streaming-option" data-platform={link.platform}>
-                                {link.platform === 'spotify' && link.url && (
-                                  <div class="spotify-embed-container">
-                                    <div class="embed-notice">
-                                      <p>🎵 Click play in the Spotify player below:</p>
-                                    </div>
-                                    <iframe 
-                                      src={`https://open.spotify.com/embed/track/${link.url.match(/track\/([a-zA-Z0-9]+)/)?.[1] || ''}?utm_source=generator&theme=0`}
-                                      width="100%" 
-                                      height="152" 
-                                      frameBorder="0" 
-                                      allowtransparency="true" 
-                                      allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" 
-                                      loading="lazy"
-                                      style="border-radius: 12px;"
-                                    ></iframe>
-                                  </div>
-                                )}
-                                
                                 {link.platform === 'youtube-music' && link.embedCode && (
                                   <div class="youtube-embed-container">
                                     <div set:html={link.embedCode.replace('width="560" height="315"', 'width="100%" height="200"')}></div>
@@ -220,8 +202,8 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
                                   rel="noopener noreferrer"
                                   class="external-link"
                                 >
-                                  Open in {link.platform === 'spotify' ? 'Spotify' : 
-                                           link.platform === 'youtube-music' ? 'YouTube Music' : 
+                                  Open in {link.platform === 'youtube-music' ? 'YouTube Music' : 
+                                           link.platform === 'apple-music' ? 'Apple Music' :
                                            link.platform.charAt(0).toUpperCase() + link.platform.slice(1)}
                                 </a>
                               </div>
@@ -665,7 +647,6 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
     position: relative;
   }
 
-  .spotify-embed-container iframe,
   .youtube-embed-container iframe {
     border-radius: 8px;
     max-width: 100%;
@@ -704,16 +685,6 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
     background: #005a9e;
   }
 
-  .embed-notice {
-    margin-bottom: 0.5rem;
-  }
-
-  .embed-notice p {
-    margin: 0;
-    font-size: 0.9rem;
-    color: #007acc;
-    font-weight: 500;
-  }
 
   .fallback-audio-section {
     margin-top: 1rem;

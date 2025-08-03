@@ -80,7 +80,7 @@ export default defineType({
                 list: [
                   {title: 'Spotify', value: 'spotify'},
                   {title: 'Apple Music', value: 'apple-music'},
-                  {title: 'YouTube', value: 'youtube'},
+                  {title: 'YouTube Music', value: 'youtube-music'},
                   {title: 'SoundCloud', value: 'soundcloud'},
                   {title: 'Bandcamp', value: 'bandcamp'},
                   {title: 'Other', value: 'other'},

@@ -200,7 +200,6 @@ export default defineType({
                               type: 'string',
                               options: {
                                 list: [
-                                  {title: 'Spotify', value: 'spotify'},
                                   {title: 'Apple Music', value: 'apple-music'},
                                   {title: 'YouTube Music', value: 'youtube-music'},
                                   {title: 'Tidal', value: 'tidal'},
@@ -334,13 +333,12 @@ export default defineType({
           type: 'string',
           options: {
             list: [
-              {title: 'Spotify', value: 'spotify'},
               {title: 'Apple Music', value: 'apple-music'},
               {title: 'YouTube Music', value: 'youtube-music'},
               {title: 'Tidal', value: 'tidal'},
             ],
           },
-          initialValue: 'spotify',
+          initialValue: 'youtube-music',
         },
         {
           name: 'interludeVolume',
