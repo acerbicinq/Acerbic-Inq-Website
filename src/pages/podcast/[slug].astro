@@ -1635,7 +1635,7 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
         }
         
         // Wait a moment for cleanup
-        await new Promise(resolve => setTimeout(resolve, 100));
+        setTimeout(() => {}, 100);
       }
 
       // Create new YouTube player
