@@ -188,7 +188,7 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
                           </div>
                           
                           <div class="streaming-options">
-                            {track.streamingLinks?.map((link, linkIndex) => (
+                            {track.streamingLinks?.filter(link => link.platform !== 'spotify').map((link, linkIndex) => (
                               <div class="streaming-option" data-platform={link.platform}>
                                 {link.platform === 'youtube-music' && link.embedCode && (
                                   <div class="youtube-embed-container">
