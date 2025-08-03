@@ -1639,18 +1639,32 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
       const trackArtist = track.artist || 'Unknown Artist';
       console.log(`Playing YouTube track: ${trackTitle} by ${trackArtist} (${videoId})`);
 
-      // Create hidden player container
-      let playerContainer = document.getElementById('youtube-interlude-player');
-      if (!playerContainer) {
-        playerContainer = document.createElement('div');
-        playerContainer.id = 'youtube-interlude-player';
-        playerContainer.style.cssText = 'position: fixed; top: -1000px; left: -1000px; width: 1px; height: 1px;';
-        document.body.appendChild(playerContainer);
+      // Create fresh hidden player container for each track
+      const existingContainer = document.getElementById('youtube-interlude-player');
+      if (existingContainer) {
+        existingContainer.remove();
       }
+      
+      const playerContainer = document.createElement('div');
+      playerContainer.id = 'youtube-interlude-player';
+      playerContainer.style.cssText = 'position: fixed; top: -1000px; left: -1000px; width: 1px; height: 1px;';
+      document.body.appendChild(playerContainer);
+      console.log('Created fresh player container for:', trackTitle);
 
-      // Destroy existing player
+      // Destroy existing player properly
       if (youtubeInterludeSystem.currentYouTubePlayer) {
-        youtubeInterludeSystem.currentYouTubePlayer.destroy();
+        try {
+          console.log('Destroying previous YouTube player');
+          youtubeInterludeSystem.currentYouTubePlayer.stopVideo();
+          youtubeInterludeSystem.currentYouTubePlayer.destroy();
+          youtubeInterludeSystem.currentYouTubePlayer = null;
+        } catch (error) {
+          console.warn('Error destroying previous player:', error);
+          youtubeInterludeSystem.currentYouTubePlayer = null;
+        }
+        
+        // Wait a moment for cleanup
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
 
       // Create new YouTube player
@@ -1669,8 +1683,14 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
         },
         events: {
           onReady: function(event) {
-            console.log('YouTube player ready, starting playback');
-            event.target.playVideo();
+            console.log('YouTube player ready for:', trackTitle, '- starting playback');
+            try {
+              event.target.playVideo();
+              console.log('playVideo() called successfully for:', trackTitle);
+            } catch (error) {
+              console.error('Error calling playVideo() for:', trackTitle, error);
+              reject(error);
+            }
           },
           onStateChange: function(event) {
             console.log('YouTube player state changed:', event.data, 'for track:', trackTitle);
