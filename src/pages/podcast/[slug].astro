@@ -1598,12 +1598,17 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
       script.async = true;
       
       // Add error handling
-      script.onerror = function() {
-        console.error('Failed to load YouTube IFrame API');
+      script.onerror = function(error) {
+        console.error('Failed to load YouTube IFrame API - likely CSP blocked:', error);
+        console.error('Check Content Security Policy allows https://www.youtube.com in script-src');
       };
       
       script.onload = function() {
-        console.log('YouTube IFrame API script loaded');
+        console.log('YouTube IFrame API script loaded successfully');
+        // Check if YT is available after script loads
+        setTimeout(() => {
+          console.log('Post-script-load check - YT available:', !!window.YT);
+        }, 100);
       };
       
       document.head.appendChild(script);
@@ -1777,6 +1782,11 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
   // Initialize YouTube system
   document.addEventListener('DOMContentLoaded', () => {
     console.log('YouTube interlude system initializing...');
+    
+    // Test if we can load YouTube API
+    console.log('Testing YouTube API access...');
+    console.log('Current CSP should allow https://www.youtube.com in script-src');
+    
     loadYouTubeAPI();
     updateInterludeUI();
     
