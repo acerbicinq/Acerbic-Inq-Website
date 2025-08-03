@@ -1052,8 +1052,22 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
       
       if (interludeContainer) {
         // Try to build YouTube queue first
-        if (window.youtubeInterludeSystem && window.youtubeInterludeSystem.youtubeAPIReady) {
+        console.log('YouTube system check:', {
+          systemExists: !!window.youtubeInterludeSystem,
+          apiReady: window.youtubeInterludeSystem?.youtubeAPIReady,
+          ytGlobal: !!window.YT,
+          ytPlayer: !!window.YT?.Player
+        });
+        
+        if (window.youtubeInterludeSystem && (window.youtubeInterludeSystem.youtubeAPIReady || window.YT?.Player)) {
           console.log('📺 Building YouTube interlude queue');
+          
+          // Force API ready if YT is available but flag isn't set
+          if (window.YT?.Player && !window.youtubeInterludeSystem.youtubeAPIReady) {
+            console.log('YouTube API detected but flag not set - forcing ready state');
+            window.youtubeInterludeSystem.youtubeAPIReady = true;
+          }
+          
           const youtubeTracks = [];
           
           // Extract YouTube URLs from the chapter's interlude tracks
@@ -1555,22 +1569,47 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
     userPaused: false
   };
 
-  // Load YouTube IFrame API
+  // Load YouTube IFrame API with better timing
   function loadYouTubeAPI() {
+    console.log('Loading YouTube API...');
+    
     if (window.YT && window.YT.Player) {
       youtubeInterludeSystem.youtubeAPIReady = true;
-      console.log('YouTube API already loaded');
+      console.log('YouTube API already loaded and ready');
       return;
     }
 
+    // Set up the callback before loading the script
     window.onYouTubeIframeAPIReady = function() {
+      console.log('YouTube IFrame API callback triggered');
       youtubeInterludeSystem.youtubeAPIReady = true;
-      console.log('YouTube IFrame API ready');
+      
+      // Also make it globally available
+      window.youtubeAPIReady = true;
+      
+      console.log('YouTube IFrame API ready - system updated');
     };
 
-    const script = document.createElement('script');
-    script.src = 'https://www.youtube.com/iframe_api';
-    document.head.appendChild(script);
+    // Only load if not already loading/loaded
+    if (!document.querySelector('script[src*="youtube.com/iframe_api"]')) {
+      console.log('Loading YouTube IFrame API script...');
+      const script = document.createElement('script');
+      script.src = 'https://www.youtube.com/iframe_api';
+      script.async = true;
+      
+      // Add error handling
+      script.onerror = function() {
+        console.error('Failed to load YouTube IFrame API');
+      };
+      
+      script.onload = function() {
+        console.log('YouTube IFrame API script loaded');
+      };
+      
+      document.head.appendChild(script);
+    } else {
+      console.log('YouTube API script already exists');
+    }
   }
 
   // Extract YouTube video ID from URL
@@ -1740,5 +1779,21 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
     console.log('YouTube interlude system initializing...');
     loadYouTubeAPI();
     updateInterludeUI();
+    
+    // Periodic check to catch if YouTube API loads after our initial check
+    const checkYouTubeAPI = setInterval(() => {
+      if (window.YT && window.YT.Player && !youtubeInterludeSystem.youtubeAPIReady) {
+        console.log('YouTube API detected on periodic check - updating ready state');
+        youtubeInterludeSystem.youtubeAPIReady = true;
+        window.youtubeAPIReady = true;
+        clearInterval(checkYouTubeAPI);
+      }
+    }, 1000);
+    
+    // Clear the interval after 30 seconds to avoid infinite checks
+    setTimeout(() => {
+      clearInterval(checkYouTubeAPI);
+      console.log('YouTube API check interval cleared');
+    }, 30000);
   });
 </script>
