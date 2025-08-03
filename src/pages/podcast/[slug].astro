@@ -785,6 +785,34 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
   document.addEventListener('DOMContentLoaded', function() {
     console.log('Phase 1 Podcast player initializing...');
     
+    // Add a test button to verify basic JS is working
+    const testButton = document.createElement('button');
+    testButton.textContent = 'JS TEST';
+    testButton.style.cssText = 'position: fixed; top: 50px; left: 10px; z-index: 9999; background: blue; color: white; padding: 10px;';
+    testButton.addEventListener('click', function() {
+      alert('Basic JavaScript is working!');
+    });
+    document.body.appendChild(testButton);
+    
+    // Simple Spotify test function
+    function simpleSpotifyAuth() {
+      const SPOTIFY_CLIENT_ID = '14bd95608ea1475a8e8ce783fb072e53';
+      const SPOTIFY_REDIRECT_URI = 'https://acerbicinq.com/podcast/idkwhoiam';
+      const SPOTIFY_SCOPES = 'streaming user-read-email user-read-private user-modify-playback-state user-read-playback-state';
+      
+      console.log('Simple Spotify auth triggered');
+      const authUrl = `https://accounts.spotify.com/authorize?client_id=${SPOTIFY_CLIENT_ID}&response_type=token&redirect_uri=${encodeURIComponent(SPOTIFY_REDIRECT_URI)}&scope=${encodeURIComponent(SPOTIFY_SCOPES)}`;
+      console.log('Auth URL:', authUrl);
+      window.location.href = authUrl;
+    }
+    
+    // Add Spotify test button
+    const spotifyTestButton = document.createElement('button');
+    spotifyTestButton.textContent = 'SPOTIFY TEST';
+    spotifyTestButton.style.cssText = 'position: fixed; top: 100px; left: 10px; z-index: 9999; background: green; color: white; padding: 10px;';
+    spotifyTestButton.addEventListener('click', simpleSpotifyAuth);
+    document.body.appendChild(spotifyTestButton);
+    
     // Get episode data
     const episodeDataScript = document.getElementById('episode-data');
     const episodeData = episodeDataScript ? JSON.parse(episodeDataScript.textContent) : { chapters: [] };
@@ -1536,7 +1564,7 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
 </script>
 
 <!-- Spotify Web Playback SDK -->
-<script type="module">
+<script>
   // Spotify Web Playback SDK Integration
   let spotifyPlayer = null;
   let spotifyDeviceId = null;
@@ -1550,11 +1578,23 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
 
   // Check if user is returning from Spotify OAuth
   function checkSpotifyCallback() {
+    console.log('Checking Spotify callback...');
+    console.log('Current URL:', window.location.href);
+    console.log('Hash:', window.location.hash);
+    
     const hash = window.location.hash.substring(1);
     const params = new URLSearchParams(hash);
     const accessToken = params.get('access_token');
+    const error = params.get('error');
+    
+    if (error) {
+      console.error('Spotify auth error:', error);
+      alert('Spotify authentication failed: ' + error);
+      return false;
+    }
     
     if (accessToken) {
+      console.log('Spotify access token received');
       spotifyAccessToken = accessToken;
       localStorage.setItem('spotify_access_token', accessToken);
       // Clean up URL
@@ -1566,22 +1606,27 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
     // Check if we have a stored token
     const storedToken = localStorage.getItem('spotify_access_token');
     if (storedToken) {
+      console.log('Using stored Spotify token');
       spotifyAccessToken = storedToken;
       initializeSpotifyPlayer();
       return true;
     }
     
+    console.log('No Spotify token found');
     return false;
   }
 
   // Authenticate with Spotify
   function authenticateSpotify() {
+    console.log('Authenticating with Spotify...');
+    
     const authUrl = `https://accounts.spotify.com/authorize?` +
       `client_id=${SPOTIFY_CLIENT_ID}&` +
       `response_type=token&` +
       `redirect_uri=${encodeURIComponent(SPOTIFY_REDIRECT_URI)}&` +
       `scope=${encodeURIComponent(SPOTIFY_SCOPES)}`;
     
+    console.log('Spotify auth URL:', authUrl);
     window.location.href = authUrl;
   }
 
@@ -1715,8 +1760,11 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
 
   // Update UI to show Spotify status
   function updateSpotifyUI() {
+    console.log('Updating Spotify UI...');
     // Add Spotify authentication status to interludes
     const interludeSections = document.querySelectorAll('.interlude-section');
+    console.log('Found interlude sections:', interludeSections.length);
+    
     interludeSections.forEach(section => {
       let statusElement = section.querySelector('.spotify-status');
       if (!statusElement) {
@@ -1739,12 +1787,26 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
         statusElement.style.border = '1px solid #1db954';
       } else {
         statusElement.innerHTML = `
-          <div>❌ Spotify not connected - <button onclick="authenticateSpotify()" style="background: #1db954; color: white; border: none; padding: 0.25rem 0.5rem; border-radius: 4px; cursor: pointer;">Connect Spotify</button></div>
+          <div>❌ Spotify not connected - <button class="spotify-connect-btn" style="background: #1db954; color: white; border: none; padding: 0.25rem 0.5rem; border-radius: 4px; cursor: pointer;">Connect Spotify</button></div>
           <div style="font-size: 0.8rem; margin-top: 0.25rem;">Auto-play will use fallback audio instead</div>
         `;
+        
         statusElement.style.background = 'rgba(255, 107, 53, 0.1)';
-        statusElement.style.color = '#ff6b35';
+        statusElement.style.color = '#ff6b35';  
         statusElement.style.border = '1px solid #ff6b35';
+        
+        // Add event listener to the button with debugging
+        const connectBtn = statusElement.querySelector('.spotify-connect-btn');
+        console.log('Connect button found:', !!connectBtn);
+        if (connectBtn) {
+          connectBtn.addEventListener('click', function(e) {
+            console.log('Spotify connect button clicked!');
+            e.preventDefault();
+            e.stopPropagation();
+            authenticateSpotify();
+          });
+          console.log('Event listener added to connect button');
+        }
       }
     });
   }
@@ -1758,7 +1820,18 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
 
   // Initialize on page load
   document.addEventListener('DOMContentLoaded', () => {
+    console.log('Spotify module DOMContentLoaded');
     checkSpotifyCallback();
     updateSpotifyUI();
+    
+    // Add a test button to debug
+    const testButton = document.createElement('button');
+    testButton.textContent = 'TEST Spotify Auth';
+    testButton.style.cssText = 'position: fixed; top: 10px; left: 10px; z-index: 9999; background: red; color: white; padding: 10px;';
+    testButton.addEventListener('click', function() {
+      console.log('TEST button clicked!');
+      authenticateSpotify();
+    });
+    document.body.appendChild(testButton);
   });
 </script>
