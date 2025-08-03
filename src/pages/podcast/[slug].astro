@@ -797,20 +797,37 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
     // Simple Spotify test function
     function simpleSpotifyAuth() {
       const SPOTIFY_CLIENT_ID = '14bd95608ea1475a8e8ce783fb072e53';
-      const SPOTIFY_REDIRECT_URI = 'https://acerbicinq.com/podcast/idkwhoiam';
+      const SPOTIFY_REDIRECT_URI = window.location.origin + '/spotify-callback';
       const SPOTIFY_SCOPES = 'streaming user-read-email user-read-private user-modify-playback-state user-read-playback-state';
       
       console.log('Simple Spotify auth triggered');
-      const authUrl = `https://accounts.spotify.com/authorize?client_id=${SPOTIFY_CLIENT_ID}&response_type=token&redirect_uri=${encodeURIComponent(SPOTIFY_REDIRECT_URI)}&scope=${encodeURIComponent(SPOTIFY_SCOPES)}`;
-      console.log('Auth URL:', authUrl);
+      console.log('Client ID:', SPOTIFY_CLIENT_ID);
+      console.log('Redirect URI:', SPOTIFY_REDIRECT_URI);
+      console.log('Current page URL:', window.location.href);
+      
+      // Use implicit grant flow (required for Web Playback SDK)
+      const authUrl = `https://accounts.spotify.com/authorize?client_id=${SPOTIFY_CLIENT_ID}&response_type=token&redirect_uri=${encodeURIComponent(SPOTIFY_REDIRECT_URI)}&scope=${encodeURIComponent(SPOTIFY_SCOPES)}&show_dialog=true`;
+      console.log('Full Auth URL:', authUrl);
+      
+      // Test if we can actually navigate
+      console.log('About to redirect to Spotify...');
+      
+      // Store current page so we can return here after auth
+      localStorage.setItem('spotify_return_url', window.location.href);
+      
       window.location.href = authUrl;
     }
     
     // Add Spotify test button
     const spotifyTestButton = document.createElement('button');
     spotifyTestButton.textContent = 'SPOTIFY TEST';
+    spotifyTestButton.type = 'button'; // Ensure it's not a submit button
     spotifyTestButton.style.cssText = 'position: fixed; top: 100px; left: 10px; z-index: 9999; background: green; color: white; padding: 10px;';
-    spotifyTestButton.addEventListener('click', simpleSpotifyAuth);
+    spotifyTestButton.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      simpleSpotifyAuth();
+    });
     document.body.appendChild(spotifyTestButton);
     
     // Get episode data
@@ -1573,7 +1590,7 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
 
   // Spotify App Configuration (you'll need to register your app)
   const SPOTIFY_CLIENT_ID = '14bd95608ea1475a8e8ce783fb072e53';
-  const SPOTIFY_REDIRECT_URI = 'https://acerbicinq.com/podcast/idkwhoiam';
+  const SPOTIFY_REDIRECT_URI = window.location.origin + '/spotify-callback';
   const SPOTIFY_SCOPES = 'streaming user-read-email user-read-private user-modify-playback-state user-read-playback-state';
 
   // Check if user is returning from Spotify OAuth
