@@ -706,6 +706,23 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
     height: 40px;
   }
 
+  /* Audio-only view styles */
+  .audio-only-view .youtube-embed-container {
+    display: none !important;
+  }
+  
+  .audio-only-view .external-link {
+    display: none !important;
+  }
+  
+  .audio-only-view .fallback-audio-section {
+    display: none !important;
+  }
+  
+  .audio-only-view .streaming-options {
+    display: none !important;
+  }
+
   /* Animation for pulsing status indicators */
   @keyframes pulse {
     0% { opacity: 1; }
@@ -863,6 +880,13 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
     if (audio) {
       currentMediaPlayer = audio;
       console.log('Set audio as initial player');
+      
+      // Set initial audio-only view since audio is default
+      const episodeContainer = document.querySelector('.episode-container');
+      if (episodeContainer) {
+        episodeContainer.classList.add('audio-only-view');
+        console.log('Initial audio-only view enabled - YouTube iframes hidden');
+      }
     } else if (video) {
       currentMediaPlayer = video;
       console.log('Set video as initial player');
@@ -889,6 +913,16 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
         // Update button states
         mediaBtns.forEach(b => b.classList.remove('active'));
         this.classList.add('active');
+        
+        // Toggle audio-only view class on episode container
+        const episodeContainer = document.querySelector('.episode-container');
+        if (type === 'audio') {
+          episodeContainer.classList.add('audio-only-view');
+          console.log('Enabled audio-only view - hiding YouTube iframes');
+        } else {
+          episodeContainer.classList.remove('audio-only-view');
+          console.log('Disabled audio-only view - showing YouTube iframes');
+        }
         
         // Switch media containers and players
         if (type === 'audio' && audio && audioContainer) {
