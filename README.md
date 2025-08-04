@@ -4,12 +4,14 @@ A modern podcast website featuring seamless interlude integration, built with As
 
 ## 🎧 Features
 
-- **Interactive Podcast Player** - Custom audio/video player with chapter navigation
-- **Seamless Interlude System** - Automatic music playback between podcast chapters
-- **YouTube Integration** - Auto-playing interludes using YouTube IFrame API
+- **Interactive Podcast Player** - Custom audio/video player with seamless mode switching
+- **Advanced Interlude System** - Automatic music playback with dual audio/video modes
+- **YouTube Integration** - Dynamic video players that appear in-page during interludes
+- **Audio/Video Mode Toggle** - Switch between clean audio-only and full video experience
 - **Chapter-Based Navigation** - Jump to specific podcast sections with timestamps
-- **Responsive Design** - Optimized for desktop and mobile devices
-- **Content Management** - Powered by Sanity CMS for easy content updates
+- **Smart Container System** - YouTube videos play directly in embedded page containers
+- **Responsive Design** - Optimized for desktop and mobile devices with adaptive layouts
+- **Content Management** - Powered by Sanity CMS for easy episode and interlude content updates
 
 ## 🏗️ Architecture
 
@@ -29,27 +31,150 @@ A modern podcast website featuring seamless interlude integration, built with As
 
 ## 🎵 Interlude System
 
-The website features a unique interlude system that:
+The website features a sophisticated interlude system that seamlessly bridges podcast chapters with curated music tracks, providing both audio-only and video viewing experiences.
 
-1. **Detects chapter endings** (95% through or within 0.5s of end)
-2. **Pauses the main podcast** automatically
-3. **Plays YouTube music tracks** seamlessly in the background
-4. **Resumes the podcast** at the next chapter when music ends
+### Core Functionality
 
-### How It Works
+1. **Automatic Chapter Detection** - Detects when chapters are 95% complete or within 0.5s of ending
+2. **Seamless Podcast Pausing** - Gracefully pauses the main podcast at chapter boundaries
+3. **YouTube Music Integration** - Plays curated music tracks with full video support
+4. **Smart Resume Logic** - Automatically resumes the podcast at the next chapter when music ends
+5. **Dual-Mode Experience** - Supports both audio-only and video viewing modes
 
+### 🎬 Audio/Video Mode Switching
+
+The interlude system adapts to user preferences with two distinct viewing modes:
+
+#### Audio Mode (Default)
+- **Clean Interface**: Shows only chapter titles and navigation elements
+- **Hidden YouTube Players**: Music plays invisibly in background for distraction-free listening
+- **Minimal Visual Clutter**: Perfect for focused podcast consumption
+- **Placeholder Containers**: Shows where videos would appear if switched to video mode
+
+#### Video Mode
+- **Visual YouTube Players**: Full YouTube videos play directly in embedded containers on the page
+- **Complete Media Experience**: Both podcast video and interlude music videos visible
+- **Interactive Controls**: Full YouTube player controls available during interludes
+- **Seamless Integration**: Videos appear naturally within the existing page layout
+
+#### Real-Time Mode Switching
 ```javascript
-// Chapter end detection
-if (timeIntoChapter >= (chapterDuration * 0.95)) {
-  startInterludeSequence(chapterIndex);
-}
-
-// YouTube player creation
-const player = new YT.Player(container, {
-  videoId: videoId,
-  playerVars: { autoplay: 1, controls: 0 }
+// Seamless switching between modes during playback
+mediaBtns.forEach(btn => {
+  btn.addEventListener('click', function() {
+    const type = this.dataset.type;
+    const episodeContainer = document.querySelector('.episode-container');
+    
+    if (type === 'audio') {
+      episodeContainer.classList.add('audio-only-view');
+      // YouTube videos hidden, audio continues
+    } else {
+      episodeContainer.classList.remove('audio-only-view');
+      // YouTube videos become visible in containers
+    }
+  });
 });
 ```
+
+### 🔧 Technical Implementation
+
+#### Smart Container System
+```javascript
+// Dynamic player creation based on current mode
+const isVideoMode = !document.querySelector('.episode-container')
+  .classList.contains('audio-only-view');
+
+if (isVideoMode) {
+  // Find matching embed container for this track
+  const targetContainer = document.querySelector(
+    `[data-youtube-url="${youtubeUrl}"]`
+  );
+  
+  if (targetContainer) {
+    // Create visible YouTube player in container
+    new YT.Player(targetContainer, {
+      height: '100%',
+      width: '100%',
+      videoId: videoId,
+      playerVars: { autoplay: 1, controls: 1 }
+    });
+  }
+} else {
+  // Create hidden player for audio-only mode
+  new YT.Player(hiddenContainer, {
+    height: '1',
+    width: '1',
+    videoId: videoId,
+    playerVars: { autoplay: 1, controls: 0 }
+  });
+}
+```
+
+#### Chapter End Detection
+```javascript
+// Precise chapter boundary detection
+if (timeIntoChapter >= (chapterDuration * 0.95)) {
+  console.log('Chapter ending detected, starting interlude...');
+  startInterludeSequence(chapterIndex);
+}
+```
+
+#### YouTube API Integration
+```javascript
+// Robust YouTube player management
+function loadYouTubeAPI() {
+  if (window.YT && window.YT.Player) {
+    youtubeInterludeSystem.youtubeAPIReady = true;
+    return;
+  }
+  
+  const script = document.createElement('script');
+  script.src = 'https://www.youtube.com/iframe_api';
+  document.head.appendChild(script);
+}
+```
+
+### 🎯 User Experience Features
+
+- **Visual Feedback**: Clear indicators show when interludes are playing
+- **Mode Persistence**: User's audio/video preference is maintained throughout the session
+- **Responsive Design**: YouTube containers adapt to screen size and device type
+- **Error Handling**: Graceful fallbacks if YouTube content is unavailable
+- **Performance Optimized**: Hidden players use minimal resources in audio mode
+
+### 🎼 Content Structure Integration
+
+The interlude system works seamlessly with the Sanity CMS content structure:
+
+```typescript
+// Each chapter can have multiple interlude tracks
+chapters: [{
+  title: string,
+  startTime: string,
+  endTime: string,
+  interludeTracks: [{
+    songTitle: string,
+    artist: string,
+    streamingLinks: [{
+      platform: 'youtube-music',
+      url: string,
+      embedCode?: string  // Fallback for legacy content
+    }],
+    fallbackAudio?: file  // Backup audio file
+  }]
+}]
+```
+
+### 🔄 Interlude Flow
+
+1. **Chapter Completion** → System detects chapter is ending
+2. **Podcast Pause** → Main audio/video pauses at chapter boundary  
+3. **Interlude Start** → YouTube track begins playing (visible or hidden based on mode)
+4. **User Interaction** → Users can switch between audio/video modes mid-interlude
+5. **Track Completion** → YouTube track ends, system cleans up player
+6. **Podcast Resume** → Next chapter begins automatically
+
+This creates a seamless, radio-like experience where music bridges podcast content naturally while giving users complete control over their viewing preference.
 
 ## 📁 Project Structure
 
