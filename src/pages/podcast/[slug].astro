@@ -296,6 +296,45 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
       </div>
     )}
 
+    <!-- Transcript Section -->
+    {episode.transcript && episode.transcript.length > 0 && (
+      <div class="transcript-section">
+        <h2>📜 Episode Transcript</h2>
+        <div class="transcript-controls">
+          <button id="transcript-toggle" class="transcript-toggle-btn">
+            <span class="toggle-text">Show Transcript</span>
+          </button>
+          <div class="transcript-info">
+            <span class="transcript-status">Ready for sync</span>
+          </div>
+        </div>
+        
+        <!-- Scrolling Transcript Container (Audio Mode) -->
+        <div id="transcript-container" class="transcript-container" style="display: none;">
+          <div class="transcript-content">
+            {episode.transcript.map((segment, index) => (
+              <div 
+                class="transcript-segment" 
+                data-timestamp={segment.timestamp}
+                data-segment-index={index}
+                data-speaker={segment.speaker || ''}
+                data-type={segment.type || 'speech'}
+              >
+                <span class="timestamp">{segment.timestamp}</span>
+                {segment.speaker && <span class="speaker">{segment.speaker}:</span>}
+                <span class="text">{segment.text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    )}
+
+    <!-- Video Subtitle Overlay (Video Mode) -->
+    <div id="subtitle-overlay" class="subtitle-overlay">
+      <div class="subtitle-text"></div>
+    </div>
+
     <!-- Navigation -->
     <nav class="episode-navigation">
       <a href="/podcast" class="back-link">← Back to Podcast</a>
@@ -767,6 +806,182 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
     display: none !important;
   }
 
+
+  /* Transcript Section Styles */
+  .transcript-section {
+    background: #f9f9f9;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin: 2rem 0;
+    border: 1px solid #e1e1e1;
+  }
+
+  .transcript-section h2 {
+    margin: 0 0 1rem 0;
+    color: #333;
+    font-size: 1.4rem;
+  }
+
+  .transcript-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #e1e1e1;
+  }
+
+  .transcript-toggle-btn {
+    background: #007acc;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background 0.2s ease;
+  }
+
+  .transcript-toggle-btn:hover {
+    background: #005a99;
+  }
+
+  .transcript-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .transcript-status {
+    font-size: 0.85rem;
+    color: #666;
+    padding: 0.25rem 0.5rem;
+    background: #e8f4f8;
+    border-radius: 4px;
+  }
+
+  .transcript-status.syncing {
+    background: #fff3cd;
+    color: #856404;
+  }
+
+  .transcript-status.active {
+    background: #d4edda;
+    color: #155724;
+  }
+
+  /* Transcript Container - Scrolling view for audio mode */
+  .transcript-container {
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background: white;
+    padding: 1rem;
+  }
+
+  .transcript-content {
+    line-height: 1.6;
+  }
+
+  .transcript-segment {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #f0f0f0;
+    transition: all 0.3s ease;
+    scroll-margin-top: 1rem;
+  }
+
+  .transcript-segment:last-child {
+    border-bottom: none;
+  }
+
+  .transcript-segment.active {
+    background: #e8f4f8;
+    border-radius: 6px;
+    padding: 0.75rem;
+    margin: 0.25rem 0;
+    border-bottom: 1px solid #007acc;
+    box-shadow: 0 2px 4px rgba(0, 122, 204, 0.1);
+  }
+
+  .transcript-segment .timestamp {
+    font-family: 'Courier New', monospace;
+    font-size: 0.8rem;
+    color: #007acc;
+    font-weight: bold;
+    min-width: 60px;
+    flex-shrink: 0;
+  }
+
+  .transcript-segment .speaker {
+    font-weight: bold;
+    color: #333;
+    min-width: 80px;
+    flex-shrink: 0;
+  }
+
+  .transcript-segment .text {
+    flex: 1;
+    color: #444;
+  }
+
+  .transcript-segment[data-type="music"] {
+    font-style: italic;
+    opacity: 0.7;
+  }
+
+  .transcript-segment[data-type="music"] .text {
+    color: #666;
+  }
+
+  /* Subtitle Overlay - For video mode */
+  .subtitle-overlay {
+    position: absolute;
+    bottom: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 100;
+    pointer-events: none;
+    display: none;
+  }
+
+  .subtitle-text {
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 1rem;
+    line-height: 1.4;
+    text-align: center;
+    max-width: 80vw;
+    word-wrap: break-word;
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  /* Video container positioning for subtitles */
+  .media-container {
+    position: relative;
+  }
+
+  .media-container .subtitle-overlay {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  /* Hide transcript container in audio-only mode, show subtitles in video mode */
+  .audio-only-view .subtitle-overlay {
+    display: none !important;
+  }
+
+  .audio-only-view .transcript-container {
+    display: block !important;
+  }
 
   /* Animation for pulsing status indicators */
   @keyframes pulse {
@@ -1916,5 +2131,261 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
     console.log('YouTube interlude system initializing...');
     loadYouTubeAPI();
     updateInterludeUI();
+  });
+</script>
+
+<!-- Transcript Sync System -->
+<script>
+  // Transcript Sync System - Pure Vanilla JS
+  class TranscriptSync {
+    constructor() {
+      this.transcriptData = [];
+      this.currentSegmentIndex = -1;
+      this.isTranscriptVisible = false;
+      this.mediaPlayer = null;
+      this.transcriptContainer = null;
+      this.subtitleOverlay = null;
+      this.transcriptStatus = null;
+      this.isVideoMode = false;
+      
+      this.init();
+    }
+
+    init() {
+      console.log('Initializing Transcript Sync System...');
+      
+      // Get DOM elements
+      const transcriptToggle = document.getElementById('transcript-toggle');
+      this.transcriptContainer = document.getElementById('transcript-container');
+      this.subtitleOverlay = document.getElementById('subtitle-overlay');
+      this.transcriptStatus = document.querySelector('.transcript-status');
+      
+      // Get transcript data from the page
+      this.loadTranscriptData();
+      
+      // Set up event listeners
+      if (transcriptToggle) {
+        transcriptToggle.addEventListener('click', () => this.toggleTranscript());
+      }
+      
+      // Wait for media player to be ready
+      this.setupMediaPlayerSync();
+      
+      console.log('Transcript system initialized with', this.transcriptData.length, 'segments');
+    }
+
+    loadTranscriptData() {
+      const segments = document.querySelectorAll('.transcript-segment');
+      this.transcriptData = Array.from(segments).map((segment, index) => ({
+        index: index,
+        timestamp: segment.dataset.timestamp,
+        text: segment.querySelector('.text').textContent,
+        speaker: segment.dataset.speaker || '',
+        type: segment.dataset.type || 'speech',
+        element: segment,
+        timeInSeconds: this.parseTimestamp(segment.dataset.timestamp)
+      }));
+      
+      console.log('Loaded transcript data:', this.transcriptData);
+    }
+
+    parseTimestamp(timestamp) {
+      // Parse MM:SS.MS or HH:MM:SS.MS format
+      const parts = timestamp.split(':');
+      let totalSeconds = 0;
+      
+      if (parts.length === 2) {
+        // MM:SS.MS format
+        const [minutes, secondsMs] = parts;
+        const [seconds, milliseconds = 0] = secondsMs.split('.');
+        totalSeconds = parseInt(minutes) * 60 + parseInt(seconds) + (parseInt(milliseconds) / 1000);
+      } else if (parts.length === 3) {
+        // HH:MM:SS.MS format
+        const [hours, minutes, secondsMs] = parts;
+        const [seconds, milliseconds = 0] = secondsMs.split('.');
+        totalSeconds = parseInt(hours) * 3600 + parseInt(minutes) * 60 + parseInt(seconds) + (parseInt(milliseconds) / 1000);
+      }
+      
+      return totalSeconds;
+    }
+
+    setupMediaPlayerSync() {
+      // Try to get the current media player
+      const trySetupPlayer = () => {
+        this.mediaPlayer = window.currentMediaPlayer;
+        
+        if (this.mediaPlayer) {
+          console.log('Media player found, setting up transcript sync');
+          this.mediaPlayer.addEventListener('timeupdate', () => {
+            this.syncTranscript(this.mediaPlayer.currentTime);
+          });
+          
+          this.updateStatus('Ready - transcript will sync during playback');
+        } else {
+          console.log('Media player not ready yet, retrying...');
+          setTimeout(trySetupPlayer, 1000);
+        }
+      };
+      
+      trySetupPlayer();
+    }
+
+    toggleTranscript() {
+      this.isTranscriptVisible = !this.isTranscriptVisible;
+      const toggleBtn = document.getElementById('transcript-toggle');
+      const toggleText = toggleBtn.querySelector('.toggle-text');
+      
+      if (this.isTranscriptVisible) {
+        this.transcriptContainer.style.display = 'block';
+        toggleText.textContent = 'Hide Transcript';
+        this.updateStatus('Transcript visible - sync active');
+        
+        // Check current mode and adjust display
+        this.checkDisplayMode();
+      } else {
+        this.transcriptContainer.style.display = 'none';
+        toggleText.textContent = 'Show Transcript';
+        this.updateStatus('Transcript hidden');
+      }
+    }
+
+    checkDisplayMode() {
+      const episodeContainer = document.querySelector('.episode-container');
+      this.isVideoMode = episodeContainer && !episodeContainer.classList.contains('audio-only-view');
+      
+      console.log('Current display mode:', this.isVideoMode ? 'video' : 'audio');
+      
+      if (this.isVideoMode && this.isTranscriptVisible) {
+        // In video mode, show subtitles instead of scrolling transcript
+        this.subtitleOverlay.style.display = 'block';
+        if (this.transcriptContainer) {
+          this.transcriptContainer.style.display = 'none';
+        }
+      } else if (this.isTranscriptVisible) {
+        // In audio mode, show scrolling transcript
+        this.subtitleOverlay.style.display = 'none';
+        if (this.transcriptContainer) {
+          this.transcriptContainer.style.display = 'block';
+        }
+      }
+    }
+
+    syncTranscript(currentTime) {
+      if (!this.isTranscriptVisible || this.transcriptData.length === 0) {
+        return;
+      }
+
+      // Find the current segment based on timestamp
+      let activeSegmentIndex = -1;
+      
+      for (let i = 0; i < this.transcriptData.length; i++) {
+        const segment = this.transcriptData[i];
+        const nextSegment = this.transcriptData[i + 1];
+        
+        if (currentTime >= segment.timeInSeconds) {
+          if (!nextSegment || currentTime < nextSegment.timeInSeconds) {
+            activeSegmentIndex = i;
+            break;
+          }
+        }
+      }
+
+      // Update active segment if changed
+      if (activeSegmentIndex !== this.currentSegmentIndex) {
+        this.updateActiveSegment(activeSegmentIndex);
+      }
+    }
+
+    updateActiveSegment(newIndex) {
+      // Remove active class from previous segment
+      if (this.currentSegmentIndex >= 0 && this.transcriptData[this.currentSegmentIndex]) {
+        this.transcriptData[this.currentSegmentIndex].element.classList.remove('active');
+      }
+
+      this.currentSegmentIndex = newIndex;
+
+      if (newIndex >= 0 && this.transcriptData[newIndex]) {
+        const activeSegment = this.transcriptData[newIndex];
+        
+        // Add active class to current segment
+        activeSegment.element.classList.add('active');
+        
+        // Update display based on current mode
+        this.checkDisplayMode();
+        
+        if (this.isVideoMode) {
+          // Show as subtitle overlay
+          this.displaySubtitle(activeSegment);
+        } else {
+          // Scroll to active segment in transcript container
+          this.scrollToActiveSegment(activeSegment);
+        }
+        
+        this.updateStatus(`Speaking: ${activeSegment.speaker || 'Unknown'} at ${activeSegment.timestamp}`);
+      }
+    }
+
+    displaySubtitle(segment) {
+      if (!this.subtitleOverlay) return;
+      
+      const subtitleText = this.subtitleOverlay.querySelector('.subtitle-text');
+      if (subtitleText) {
+        subtitleText.textContent = segment.text;
+        this.subtitleOverlay.style.display = 'block';
+        
+        // Position relative to video container
+        const videoContainer = document.querySelector('.media-container.active');
+        if (videoContainer) {
+          videoContainer.appendChild(this.subtitleOverlay);
+        }
+      }
+    }
+
+    scrollToActiveSegment(segment) {
+      if (!this.transcriptContainer) return;
+      
+      // Scroll the active segment into view
+      segment.element.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+        inline: 'nearest'
+      });
+    }
+
+    updateStatus(message) {
+      if (this.transcriptStatus) {
+        this.transcriptStatus.textContent = message;
+        this.transcriptStatus.classList.add('active');
+        
+        // Remove active class after a moment
+        setTimeout(() => {
+          this.transcriptStatus.classList.remove('active');
+        }, 2000);
+      }
+    }
+  }
+
+  // Initialize transcript system when DOM is ready
+  document.addEventListener('DOMContentLoaded', () => {
+    // Only initialize if transcript data exists
+    if (document.querySelector('.transcript-segment')) {
+      console.log('Transcript segments found, initializing sync system...');
+      window.transcriptSync = new TranscriptSync();
+    } else {
+      console.log('No transcript data found for this episode');
+    }
+  });
+
+  // Hook into existing media toggle system to update transcript display mode
+  const originalMediaToggle = document.querySelectorAll('[data-type]');
+  originalMediaToggle.forEach(btn => {
+    btn.addEventListener('click', () => {
+      // Small delay to let the mode change take effect
+      setTimeout(() => {
+        if (window.transcriptSync) {
+          window.transcriptSync.checkDisplayMode();
+        }
+      }, 100);
+    });
   });
 </script>

@@ -309,6 +309,75 @@ export default defineType({
       description: 'Detailed show notes, links, and references',
     },
     {
+      name: 'transcript',
+      title: 'Episode Transcript',
+      type: 'array',
+      of: [
+        {
+          type: 'object',
+          title: 'Transcript Segment',
+          fields: [
+            {
+              name: 'timestamp',
+              title: 'Timestamp',
+              type: 'string',
+              description: 'Format: MM:SS.MS or HH:MM:SS.MS (e.g., "01:23.45" or "1:01:23.45")',
+              validation: (Rule) => Rule.required().regex(/^(\d{1,2}:)?[0-5]?\d:[0-5]\d(\.\d{1,3})?$/, {
+                name: 'timestamp format',
+                invert: false
+              }),
+            },
+            {
+              name: 'text',
+              title: 'Transcript Text',
+              type: 'text',
+              description: 'The spoken content at this timestamp',
+              validation: (Rule) => Rule.required(),
+            },
+            {
+              name: 'speaker',
+              title: 'Speaker',
+              type: 'string',
+              description: 'Optional: Who is speaking (e.g., "Host", "Guest", speaker name)',
+            },
+            {
+              name: 'type',
+              title: 'Segment Type',
+              type: 'string',
+              options: {
+                list: [
+                  {title: 'Speech', value: 'speech'},
+                  {title: 'Music', value: 'music'},
+                  {title: 'Sound Effect', value: 'sound'},
+                  {title: 'Silence', value: 'silence'},
+                  {title: 'Other', value: 'other'},
+                ],
+              },
+              initialValue: 'speech',
+              description: 'Type of audio content',
+            },
+          ],
+          preview: {
+            select: {
+              timestamp: 'timestamp',
+              text: 'text',
+              speaker: 'speaker',
+            },
+            prepare(selection) {
+              const {timestamp, text, speaker} = selection;
+              const displayText = text && text.length > 60 ? `${text.substring(0, 60)}...` : text;
+              const subtitle = speaker ? `${speaker}: ${displayText}` : displayText;
+              return {
+                title: timestamp,
+                subtitle: subtitle,
+              };
+            },
+          },
+        },
+      ],
+      description: 'Timestamped transcript for real-time sync with audio/video. Will display as scrolling transcript in audio mode and as subtitles in video mode.',
+    },
+    {
       name: 'radioSettings',
       title: 'Radio Experience Settings',
       type: 'object',
