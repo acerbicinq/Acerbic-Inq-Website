@@ -190,12 +190,17 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
                           <div class="streaming-options">
                             {track.streamingLinks?.filter(link => link.platform !== 'spotify').map((link, linkIndex) => (
                               <div class="streaming-option" data-platform={link.platform}>
-                                {link.platform === 'youtube-music' && link.url && (
-                                  <div class="youtube-embed-container" data-youtube-url={link.url} data-track-title={track.title || track.songTitle} data-track-artist={track.artist}>
+                                {link.platform === 'youtube-music' && (link.url || link.embedCode) && (
+                                  <div class="youtube-embed-container" 
+                                       data-youtube-url={link.url || (link.embedCode ? link.embedCode.match(/src="([^"]*)"/) ? link.embedCode.match(/src="([^"]*)"/)[1] : '' : '')} 
+                                       data-track-title={track.title || track.songTitle} 
+                                       data-track-artist={track.artist}>
+                                    {/* Show placeholder in audio mode, YouTube player will replace this in video mode during interludes */}
                                     <div class="youtube-placeholder">
                                       <div class="youtube-placeholder-content">
                                         <span class="youtube-icon">▶</span>
                                         <p>YouTube video will play here during interludes in video mode</p>
+                                        <small>Track: {track.title || track.songTitle} by {track.artist}</small>
                                       </div>
                                     </div>
                                   </div>
@@ -1711,11 +1716,16 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
         
         for (const container of embedContainers) {
           const containerUrl = container.dataset.youtubeUrl;
+          console.log('Checking container URL:', containerUrl, 'against track URL:', youtubeUrl);
           if (containerUrl && containerUrl === youtubeUrl) {
             targetContainer = container;
+            console.log('Found matching container!', targetContainer);
             break;
           }
         }
+        
+        console.log('Total embed containers found:', embedContainers.length);
+        console.log('Target container found:', !!targetContainer);
 
         if (targetContainer) {
           console.log('Using visible YouTube player in embed container');
