@@ -2186,24 +2186,34 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
       this.setupMediaPlayerSync();
       
       console.log('Transcript system initialized with', this.transcriptData.length, 'segments');
+      
+      // Also check if transcript data is empty and show helpful message
+      if (this.transcriptData.length === 0) {
+        console.log('No transcript segments parsed. Check transcript format and data.');
+        this.updateFormatDetected('No segments found', false);
+      }
     }
 
     loadRawTranscriptData() {
       const rawDataElement = document.getElementById('transcript-raw-data');
       if (!rawDataElement) {
-        console.log('No transcript data found');
+        console.log('Transcript: No transcript data element found on page');
         return;
       }
 
       try {
         this.rawTranscriptData = JSON.parse(rawDataElement.textContent);
-        console.log('Raw transcript data loaded:', this.rawTranscriptData);
+        console.log('Transcript: Raw data loaded:', this.rawTranscriptData);
         
-        if (this.rawTranscriptData.transcriptData) {
+        if (this.rawTranscriptData.transcriptData && this.rawTranscriptData.transcriptData.trim()) {
+          console.log('Transcript: Found transcript data, parsing...');
           this.parseTranscriptData(this.rawTranscriptData.transcriptData, this.rawTranscriptData.formatHint);
+        } else {
+          console.log('Transcript: No transcript content found in data');
+          this.updateFormatDetected('No content', false);
         }
       } catch (error) {
-        console.error('Error loading transcript data:', error);
+        console.error('Transcript: Error loading data:', error);
         this.updateFormatDetected('Error loading data', false);
       }
     }
@@ -2257,12 +2267,15 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
     }
 
     parseWEBVTT(data) {
+      console.log('Transcript: Parsing WEBVTT data...');
       const segments = [];
       const lines = data.split('\n');
       let currentSegment = null;
+      let lineNumber = 0;
       
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i].trim();
+        lineNumber++;
         
         // Skip WEBVTT header and empty lines
         if (line === 'WEBVTT' || line === '') continue;
@@ -2270,32 +2283,35 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
         // Check for timestamp line
         const timestampMatch = line.match(/^(\d{2}:\d{2}:\d{2}\.?\d{3}) --> (\d{2}:\d{2}:\d{2}\.?\d{3})/);
         if (timestampMatch) {
+          // Save previous segment if exists
+          if (currentSegment && currentSegment.text.length > 0) {
+            segments.push({
+              timestamp: currentSegment.startTime,
+              endTimestamp: currentSegment.endTime,
+              text: currentSegment.text.join(' '),
+              speaker: currentSegment.speaker,
+              type: 'speech',
+              timeInSeconds: this.convertTimestampToSeconds(currentSegment.startTime),
+              endTimeInSeconds: this.convertTimestampToSeconds(currentSegment.endTime)
+            });
+          }
+          
+          // Start new segment
           currentSegment = {
             startTime: timestampMatch[1],
             endTime: timestampMatch[2],
             text: [],
             speaker: this.rawTranscriptData?.defaultSpeaker || 'Host'
           };
+          console.log(`Transcript: Found timestamp at line ${lineNumber}: ${timestampMatch[1]} --> ${timestampMatch[2]}`);
         } else if (currentSegment && line) {
           // Add text line to current segment
           currentSegment.text.push(line);
-        } else if (currentSegment && line === '') {
-          // End of segment
-          segments.push({
-            timestamp: currentSegment.startTime,
-            endTimestamp: currentSegment.endTime,
-            text: currentSegment.text.join(' '),
-            speaker: currentSegment.speaker,
-            type: 'speech',
-            timeInSeconds: this.convertTimestampToSeconds(currentSegment.startTime),
-            endTimeInSeconds: this.convertTimestampToSeconds(currentSegment.endTime)
-          });
-          currentSegment = null;
         }
       }
       
       // Don't forget the last segment
-      if (currentSegment) {
+      if (currentSegment && currentSegment.text.length > 0) {
         segments.push({
           timestamp: currentSegment.startTime,
           endTimestamp: currentSegment.endTime,
@@ -2307,6 +2323,7 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
         });
       }
       
+      console.log(`Transcript: WEBVTT parsing complete. Found ${segments.length} segments.`);
       return segments;
     }
 
@@ -2473,23 +2490,36 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
     }
 
     setupMediaPlayerSync() {
+      let attempts = 0;
+      const maxAttempts = 10; // Max 10 seconds of trying
+      
       const trySetupPlayer = () => {
+        attempts++;
         this.mediaPlayer = window.currentMediaPlayer;
         
         if (this.mediaPlayer) {
-          console.log('Media player found, setting up transcript sync');
+          console.log('Transcript: Media player found, setting up sync');
           this.mediaPlayer.addEventListener('timeupdate', () => {
             this.syncTranscript(this.mediaPlayer.currentTime);
           });
           
           this.updateStatus('Ready - transcript will sync during playback');
-        } else {
-          console.log('Media player not ready yet, retrying...');
-          setTimeout(trySetupPlayer, 1000);
+          return;
         }
+        
+        if (attempts >= maxAttempts) {
+          console.log('Transcript: Media player not found after', maxAttempts, 'attempts. Transcript will work in manual mode.');
+          this.updateStatus('Transcript ready - sync will activate when media plays');
+          return;
+        }
+        
+        // Try less frequently to reduce console spam
+        console.log(`Transcript: Waiting for media player (attempt ${attempts}/${maxAttempts})`);
+        setTimeout(trySetupPlayer, 2000);
       };
       
-      trySetupPlayer();
+      // Wait a bit longer initially to let other systems initialize first
+      setTimeout(trySetupPlayer, 3000);
     }
 
     toggleTranscript() {
