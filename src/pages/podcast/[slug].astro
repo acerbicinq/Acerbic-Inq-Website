@@ -297,7 +297,7 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
     )}
 
     <!-- Transcript Section -->
-    {episode.transcript && episode.transcript.length > 0 && (
+    {episode.transcript && (episode.transcript.transcriptData || episode.transcript.transcriptFile) && (
       <div class="transcript-section">
         <h2>📜 Episode Transcript</h2>
         <div class="transcript-controls">
@@ -306,25 +306,28 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
           </button>
           <div class="transcript-info">
             <span class="transcript-status">Ready for sync</span>
+            <span class="format-detected" id="format-detected">Detecting format...</span>
           </div>
         </div>
         
+        <!-- Raw transcript data for parsing -->
+        <script type="application/json" id="transcript-raw-data">
+          {JSON.stringify({
+            transcriptData: episode.transcript.transcriptData || '',
+            transcriptFile: episode.transcript.transcriptFile || null,
+            defaultSpeaker: episode.transcript.defaultSpeaker || 'Host',
+            enableSync: episode.transcript.enableSync !== false,
+            formatHint: episode.transcript.formatHint || 'auto'
+          })}
+        </script>
+        
         <!-- Scrolling Transcript Container (Audio Mode) -->
         <div id="transcript-container" class="transcript-container" style="display: none;">
-          <div class="transcript-content">
-            {episode.transcript.map((segment, index) => (
-              <div 
-                class="transcript-segment" 
-                data-timestamp={segment.timestamp}
-                data-segment-index={index}
-                data-speaker={segment.speaker || ''}
-                data-type={segment.type || 'speech'}
-              >
-                <span class="timestamp">{segment.timestamp}</span>
-                {segment.speaker && <span class="speaker">{segment.speaker}:</span>}
-                <span class="text">{segment.text}</span>
-              </div>
-            ))}
+          <div class="transcript-content" id="transcript-content">
+            <!-- Transcript segments will be dynamically populated by JavaScript -->
+            <div class="transcript-loading">
+              <p>Loading transcript...</p>
+            </div>
           </div>
         </div>
       </div>
@@ -850,6 +853,7 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    flex-wrap: wrap;
   }
 
   .transcript-status {
@@ -858,6 +862,28 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
     padding: 0.25rem 0.5rem;
     background: #e8f4f8;
     border-radius: 4px;
+  }
+
+  .format-detected {
+    font-size: 0.8rem;
+    color: #888;
+    padding: 0.2rem 0.4rem;
+    background: #f8f8f8;
+    border-radius: 3px;
+    border: 1px solid #ddd;
+  }
+
+  .format-detected.detected {
+    background: #d4edda;
+    color: #155724;
+    border-color: #c3e6cb;
+  }
+
+  .transcript-loading {
+    text-align: center;
+    padding: 2rem;
+    color: #666;
+    font-style: italic;
   }
 
   .transcript-status.syncing {
@@ -2134,10 +2160,10 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
   });
 </script>
 
-<!-- Transcript Sync System -->
+<!-- Multi-Format Transcript Sync System -->
 <script>
-  // Transcript Sync System - Pure Vanilla JS
-  class TranscriptSync {
+  // Multi-Format Transcript Parser and Sync System
+  class MultiFormatTranscriptSync {
     constructor() {
       this.transcriptData = [];
       this.currentSegmentIndex = -1;
@@ -2146,22 +2172,25 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
       this.transcriptContainer = null;
       this.subtitleOverlay = null;
       this.transcriptStatus = null;
+      this.formatDetected = null;
       this.isVideoMode = false;
+      this.rawTranscriptData = null;
       
       this.init();
     }
 
     init() {
-      console.log('Initializing Transcript Sync System...');
+      console.log('Initializing Multi-Format Transcript Sync System...');
       
       // Get DOM elements
       const transcriptToggle = document.getElementById('transcript-toggle');
       this.transcriptContainer = document.getElementById('transcript-container');
       this.subtitleOverlay = document.getElementById('subtitle-overlay');
       this.transcriptStatus = document.querySelector('.transcript-status');
+      this.formatDetected = document.getElementById('format-detected');
       
-      // Get transcript data from the page
-      this.loadTranscriptData();
+      // Load and parse transcript data
+      this.loadRawTranscriptData();
       
       // Set up event listeners
       if (transcriptToggle) {
@@ -2174,33 +2203,246 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
       console.log('Transcript system initialized with', this.transcriptData.length, 'segments');
     }
 
-    loadTranscriptData() {
-      const segments = document.querySelectorAll('.transcript-segment');
-      this.transcriptData = Array.from(segments).map((segment, index) => ({
-        index: index,
-        timestamp: segment.dataset.timestamp,
-        text: segment.querySelector('.text').textContent,
-        speaker: segment.dataset.speaker || '',
-        type: segment.dataset.type || 'speech',
-        element: segment,
-        timeInSeconds: this.parseTimestamp(segment.dataset.timestamp)
-      }));
-      
-      console.log('Loaded transcript data:', this.transcriptData);
+    loadRawTranscriptData() {
+      const rawDataElement = document.getElementById('transcript-raw-data');
+      if (!rawDataElement) {
+        console.log('No transcript data found');
+        return;
+      }
+
+      try {
+        this.rawTranscriptData = JSON.parse(rawDataElement.textContent);
+        console.log('Raw transcript data loaded:', this.rawTranscriptData);
+        
+        if (this.rawTranscriptData.transcriptData) {
+          this.parseTranscriptData(this.rawTranscriptData.transcriptData, this.rawTranscriptData.formatHint);
+        }
+      } catch (error) {
+        console.error('Error loading transcript data:', error);
+        this.updateFormatDetected('Error loading data', false);
+      }
     }
 
-    parseTimestamp(timestamp) {
-      // Parse MM:SS.MS or HH:MM:SS.MS format
-      const parts = timestamp.split(':');
+    parseTranscriptData(data, formatHint = 'auto') {
+      console.log('Parsing transcript data with format hint:', formatHint);
+      
+      // Auto-detect format if not specified
+      const detectedFormat = formatHint === 'auto' ? this.detectFormat(data) : formatHint;
+      console.log('Detected format:', detectedFormat);
+      
+      this.updateFormatDetected(detectedFormat.toUpperCase(), true);
+      
+      try {
+        switch (detectedFormat) {
+          case 'webvtt':
+            this.transcriptData = this.parseWEBVTT(data);
+            break;
+          case 'srt':
+            this.transcriptData = this.parseSRT(data);
+            break;
+          case 'json':
+            this.transcriptData = this.parseJSON(data);
+            break;
+          case 'simple':
+            this.transcriptData = this.parseSimpleTimestamps(data);
+            break;
+          case 'csv':
+            this.transcriptData = this.parseCSV(data);
+            break;
+          default:
+            throw new Error(`Unsupported format: ${detectedFormat}`);
+        }
+        
+        console.log('Parsed transcript data:', this.transcriptData);
+        this.renderTranscriptHTML();
+        
+      } catch (error) {
+        console.error('Error parsing transcript:', error);
+        this.updateFormatDetected('Parse Error', false);
+      }
+    }
+
+    detectFormat(data) {
+      if (data.trim().startsWith('WEBVTT')) return 'webvtt';
+      if (data.match(/^\d+\s*\n\d{2}:\d{2}:\d{2},\d{3} --> \d{2}:\d{2}:\d{2},\d{3}/m)) return 'srt';
+      if (data.trim().startsWith('[') && data.trim().endsWith(']')) return 'json';
+      if (data.includes(',') && (data.includes('"') || data.split('\n')[0].split(',').length > 2)) return 'csv';
+      if (data.match(/\[\d{2}:\d{2}:\d{2}[\.\,]\d{3}\]/) || data.match(/\d{2}:\d{2}:\d{2}[\.\,]\d{3}:/)) return 'simple';
+      return 'simple'; // fallback
+    }
+
+    parseWEBVTT(data) {
+      const segments = [];
+      const lines = data.split('\n');
+      let currentSegment = null;
+      
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        
+        // Skip WEBVTT header and empty lines
+        if (line === 'WEBVTT' || line === '') continue;
+        
+        // Check for timestamp line
+        const timestampMatch = line.match(/^(\d{2}:\d{2}:\d{2}\.?\d{3}) --> (\d{2}:\d{2}:\d{2}\.?\d{3})/);
+        if (timestampMatch) {
+          currentSegment = {
+            startTime: timestampMatch[1],
+            endTime: timestampMatch[2],
+            text: [],
+            speaker: this.rawTranscriptData?.defaultSpeaker || 'Host'
+          };
+        } else if (currentSegment && line) {
+          // Add text line to current segment
+          currentSegment.text.push(line);
+        } else if (currentSegment && line === '') {
+          // End of segment
+          segments.push({
+            timestamp: currentSegment.startTime,
+            endTimestamp: currentSegment.endTime,
+            text: currentSegment.text.join(' '),
+            speaker: currentSegment.speaker,
+            type: 'speech',
+            timeInSeconds: this.convertTimestampToSeconds(currentSegment.startTime),
+            endTimeInSeconds: this.convertTimestampToSeconds(currentSegment.endTime)
+          });
+          currentSegment = null;
+        }
+      }
+      
+      // Don't forget the last segment
+      if (currentSegment) {
+        segments.push({
+          timestamp: currentSegment.startTime,
+          endTimestamp: currentSegment.endTime,
+          text: currentSegment.text.join(' '),
+          speaker: currentSegment.speaker,
+          type: 'speech',
+          timeInSeconds: this.convertTimestampToSeconds(currentSegment.startTime),
+          endTimeInSeconds: this.convertTimestampToSeconds(currentSegment.endTime)
+        });
+      }
+      
+      return segments;
+    }
+
+    parseSRT(data) {
+      const segments = [];
+      const blocks = data.trim().split(/\n\s*\n/);
+      
+      blocks.forEach(block => {
+        const lines = block.trim().split('\n');
+        if (lines.length >= 3) {
+          const timestampLine = lines[1];
+          const timestampMatch = timestampLine.match(/^(\d{2}:\d{2}:\d{2},\d{3}) --> (\d{2}:\d{2}:\d{2},\d{3})/);
+          
+          if (timestampMatch) {
+            const startTime = timestampMatch[1].replace(',', '.');
+            const endTime = timestampMatch[2].replace(',', '.');
+            const text = lines.slice(2).join(' ');
+            
+            segments.push({
+              timestamp: startTime,
+              endTimestamp: endTime,
+              text: text,
+              speaker: this.rawTranscriptData?.defaultSpeaker || 'Host',
+              type: 'speech',
+              timeInSeconds: this.convertTimestampToSeconds(startTime),
+              endTimeInSeconds: this.convertTimestampToSeconds(endTime)
+            });
+          }
+        }
+      });
+      
+      return segments;
+    }
+
+    parseJSON(data) {
+      const segments = [];
+      const jsonData = JSON.parse(data);
+      
+      jsonData.forEach(item => {
+        segments.push({
+          timestamp: item.start || item.timestamp || item.time,
+          endTimestamp: item.end || item.endTime,
+          text: item.text || item.content,
+          speaker: item.speaker || this.rawTranscriptData?.defaultSpeaker || 'Host',
+          type: item.type || 'speech',
+          timeInSeconds: this.convertTimestampToSeconds(item.start || item.timestamp || item.time),
+          endTimeInSeconds: item.end ? this.convertTimestampToSeconds(item.end) : undefined
+        });
+      });
+      
+      return segments;
+    }
+
+    parseSimpleTimestamps(data) {
+      const segments = [];
+      const lines = data.split('\n');
+      
+      lines.forEach(line => {
+        const line_trimmed = line.trim();
+        if (!line_trimmed) return;
+        
+        // Match [00:01:23.456] format or 00:01:23.456: format
+        const match = line_trimmed.match(/^(?:\[)?(\d{1,2}:\d{2}:\d{2}(?:[\.\,]\d{3})?)\]?\s*:?\s*(.+)$/);
+        if (match) {
+          const timestamp = match[1];
+          const text = match[2];
+          
+          segments.push({
+            timestamp: timestamp,
+            text: text,
+            speaker: this.rawTranscriptData?.defaultSpeaker || 'Host',
+            type: 'speech',
+            timeInSeconds: this.convertTimestampToSeconds(timestamp)
+          });
+        }
+      });
+      
+      return segments;
+    }
+
+    parseCSV(data) {
+      const segments = [];
+      const lines = data.split('\n');
+      
+      // Skip header row if it exists
+      const startRow = lines[0].includes('timestamp') || lines[0].includes('time') ? 1 : 0;
+      
+      for (let i = startRow; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+        
+        const columns = line.split(',').map(col => col.replace(/^"/, '').replace(/"$/, ''));
+        if (columns.length >= 2) {
+          segments.push({
+            timestamp: columns[0],
+            text: columns[1],
+            speaker: columns[2] || this.rawTranscriptData?.defaultSpeaker || 'Host',
+            type: columns[3] || 'speech',
+            timeInSeconds: this.convertTimestampToSeconds(columns[0])
+          });
+        }
+      }
+      
+      return segments;
+    }
+
+    convertTimestampToSeconds(timestamp) {
+      if (!timestamp) return 0;
+      
+      // Handle different timestamp formats
+      const cleanTimestamp = timestamp.replace(',', '.');
+      const parts = cleanTimestamp.split(':');
       let totalSeconds = 0;
       
       if (parts.length === 2) {
-        // MM:SS.MS format
+        // MM:SS.mmm format
         const [minutes, secondsMs] = parts;
         const [seconds, milliseconds = 0] = secondsMs.split('.');
         totalSeconds = parseInt(minutes) * 60 + parseInt(seconds) + (parseInt(milliseconds) / 1000);
       } else if (parts.length === 3) {
-        // HH:MM:SS.MS format
+        // HH:MM:SS.mmm format
         const [hours, minutes, secondsMs] = parts;
         const [seconds, milliseconds = 0] = secondsMs.split('.');
         totalSeconds = parseInt(hours) * 3600 + parseInt(minutes) * 60 + parseInt(seconds) + (parseInt(milliseconds) / 1000);
@@ -2209,8 +2451,43 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
       return totalSeconds;
     }
 
+    renderTranscriptHTML() {
+      const contentContainer = document.getElementById('transcript-content');
+      if (!contentContainer) return;
+      
+      contentContainer.innerHTML = '';
+      
+      this.transcriptData.forEach((segment, index) => {
+        const segmentDiv = document.createElement('div');
+        segmentDiv.className = 'transcript-segment';
+        segmentDiv.dataset.timestamp = segment.timestamp;
+        segmentDiv.dataset.segmentIndex = index;
+        segmentDiv.dataset.speaker = segment.speaker || '';
+        segmentDiv.dataset.type = segment.type || 'speech';
+        
+        segmentDiv.innerHTML = `
+          <span class="timestamp">${segment.timestamp}</span>
+          ${segment.speaker ? `<span class="speaker">${segment.speaker}:</span>` : ''}
+          <span class="text">${segment.text}</span>
+        `;
+        
+        // Store element reference for sync
+        segment.element = segmentDiv;
+        
+        contentContainer.appendChild(segmentDiv);
+      });
+      
+      console.log('Transcript HTML rendered with', this.transcriptData.length, 'segments');
+    }
+
+    updateFormatDetected(format, success) {
+      if (this.formatDetected) {
+        this.formatDetected.textContent = success ? format : `Error: ${format}`;
+        this.formatDetected.classList.toggle('detected', success);
+      }
+    }
+
     setupMediaPlayerSync() {
-      // Try to get the current media player
       const trySetupPlayer = () => {
         this.mediaPlayer = window.currentMediaPlayer;
         
@@ -2240,7 +2517,6 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
         toggleText.textContent = 'Hide Transcript';
         this.updateStatus('Transcript visible - sync active');
         
-        // Check current mode and adjust display
         this.checkDisplayMode();
       } else {
         this.transcriptContainer.style.display = 'none';
@@ -2357,7 +2633,6 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
         this.transcriptStatus.textContent = message;
         this.transcriptStatus.classList.add('active');
         
-        // Remove active class after a moment
         setTimeout(() => {
           this.transcriptStatus.classList.remove('active');
         }, 2000);
@@ -2368,9 +2643,9 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
   // Initialize transcript system when DOM is ready
   document.addEventListener('DOMContentLoaded', () => {
     // Only initialize if transcript data exists
-    if (document.querySelector('.transcript-segment')) {
-      console.log('Transcript segments found, initializing sync system...');
-      window.transcriptSync = new TranscriptSync();
+    if (document.getElementById('transcript-raw-data')) {
+      console.log('Transcript data found, initializing multi-format sync system...');
+      window.transcriptSync = new MultiFormatTranscriptSync();
     } else {
       console.log('No transcript data found for this episode');
     }
@@ -2380,7 +2655,6 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
   const originalMediaToggle = document.querySelectorAll('[data-type]');
   originalMediaToggle.forEach(btn => {
     btn.addEventListener('click', () => {
-      // Small delay to let the mode change take effect
       setTimeout(() => {
         if (window.transcriptSync) {
           window.transcriptSync.checkDisplayMode();

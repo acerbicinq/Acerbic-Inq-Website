@@ -311,71 +311,77 @@ export default defineType({
     {
       name: 'transcript',
       title: 'Episode Transcript',
-      type: 'array',
-      of: [
+      type: 'object',
+      fields: [
         {
-          type: 'object',
-          title: 'Transcript Segment',
-          fields: [
-            {
-              name: 'timestamp',
-              title: 'Timestamp',
-              type: 'string',
-              description: 'Format: MM:SS.MS or HH:MM:SS.MS (e.g., "01:23.45" or "1:01:23.45")',
-              validation: (Rule) => Rule.required().regex(/^(\d{1,2}:)?[0-5]?\d:[0-5]\d(\.\d{1,3})?$/, {
-                name: 'timestamp format',
-                invert: false
-              }),
-            },
-            {
-              name: 'text',
-              title: 'Transcript Text',
-              type: 'text',
-              description: 'The spoken content at this timestamp',
-              validation: (Rule) => Rule.required(),
-            },
-            {
-              name: 'speaker',
-              title: 'Speaker',
-              type: 'string',
-              description: 'Optional: Who is speaking (e.g., "Host", "Guest", speaker name)',
-            },
-            {
-              name: 'type',
-              title: 'Segment Type',
-              type: 'string',
-              options: {
-                list: [
-                  {title: 'Speech', value: 'speech'},
-                  {title: 'Music', value: 'music'},
-                  {title: 'Sound Effect', value: 'sound'},
-                  {title: 'Silence', value: 'silence'},
-                  {title: 'Other', value: 'other'},
-                ],
-              },
-              initialValue: 'speech',
-              description: 'Type of audio content',
-            },
-          ],
-          preview: {
-            select: {
-              timestamp: 'timestamp',
-              text: 'text',
-              speaker: 'speaker',
-            },
-            prepare(selection) {
-              const {timestamp, text, speaker} = selection;
-              const displayText = text && text.length > 60 ? `${text.substring(0, 60)}...` : text;
-              const subtitle = speaker ? `${speaker}: ${displayText}` : displayText;
-              return {
-                title: timestamp,
-                subtitle: subtitle,
-              };
-            },
-          },
+          name: 'transcriptData',
+          title: 'Transcript Content',
+          type: 'text',
+          rows: 15,
+          description: `Paste your transcript in any of these supported formats:
+
+• WEBVTT format:
+WEBVTT
+
+00:00:01.419 --> 00:00:10.320
+I don't know who I am...
+
+• SRT format:
+1
+00:00:01,419 --> 00:00:10,320
+I don't know who I am...
+
+• JSON format:
+[{"start": "00:01.419", "end": "00:10.320", "text": "I don't know who I am..."}]
+
+• Simple timestamp format:
+[00:01.419] I don't know who I am...
+00:01.419: I don't know who I am...
+
+The system will automatically detect and parse the format.`,
         },
+        {
+          name: 'transcriptFile',
+          title: 'Upload Transcript File',
+          type: 'file',
+          options: {
+            accept: '.vtt,.webvtt,.srt,.json,.txt,.csv'
+          },
+          description: 'Alternatively, upload a transcript file (.vtt, .srt, .json, .txt, or .csv)',
+        },
+        {
+          name: 'defaultSpeaker',
+          title: 'Default Speaker Name',
+          type: 'string',
+          description: 'Default speaker name when none is specified (e.g., "Host", "Guest")',
+          initialValue: 'Host',
+        },
+        {
+          name: 'enableSync',
+          title: 'Enable Real-time Sync',
+          type: 'boolean',
+          description: 'Enable real-time transcript synchronization with audio/video playback',
+          initialValue: true,
+        },
+        {
+          name: 'formatHint',
+          title: 'Format Hint (Optional)',
+          type: 'string',
+          options: {
+            list: [
+              {title: 'Auto-detect', value: 'auto'},
+              {title: 'WEBVTT', value: 'webvtt'},
+              {title: 'SRT (SubRip)', value: 'srt'},
+              {title: 'JSON', value: 'json'},
+              {title: 'Simple Timestamps', value: 'simple'},
+              {title: 'CSV', value: 'csv'},
+            ],
+          },
+          initialValue: 'auto',
+          description: 'Help the parser by specifying the format if auto-detection fails',
+        }
       ],
-      description: 'Timestamped transcript for real-time sync with audio/video. Will display as scrolling transcript in audio mode and as subtitles in video mode.',
+      description: 'Multi-format transcript support. Paste or upload transcripts in WEBVTT, SRT, JSON, or other common formats. The system will automatically parse and sync with audio/video.',
     },
     {
       name: 'radioSettings',
