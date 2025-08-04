@@ -296,15 +296,13 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
         </div>
         
         <!-- Raw transcript data for parsing -->
-        <script type="application/json" id="transcript-raw-data">
-          {JSON.stringify({
-            transcriptData: episode.transcript.transcriptData || '',
-            transcriptFile: episode.transcript.transcriptFile || null,
-            defaultSpeaker: episode.transcript.defaultSpeaker || 'Host',
-            enableSync: episode.transcript.enableSync !== false,
-            formatHint: episode.transcript.formatHint || 'auto'
-          })}
-        </script>
+        <script type="application/json" id="transcript-raw-data" set:html={JSON.stringify({
+          transcriptData: (episode.transcript?.transcriptData && typeof episode.transcript.transcriptData === 'string') ? episode.transcript.transcriptData : '',
+          transcriptFile: episode.transcript?.transcriptFile || null,
+          defaultSpeaker: (episode.transcript?.defaultSpeaker && typeof episode.transcript.defaultSpeaker === 'string') ? episode.transcript.defaultSpeaker : 'Host',
+          enableSync: episode.transcript?.enableSync === true || (episode.transcript?.transcriptData && episode.transcript.transcriptData.trim().length > 0),
+          formatHint: (episode.transcript?.formatHint && typeof episode.transcript.formatHint === 'string') ? episode.transcript.formatHint : 'auto'
+        })}></script>
         
         <!-- Scrolling Transcript Container (Audio Mode) -->
         <div id="transcript-container" class="transcript-container" style="display: none;">
@@ -1036,8 +1034,8 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
 <!-- Episode data for JavaScript -->
 <script type="application/json" id="episode-data" set:html={JSON.stringify({
   chapters: episode.chapters || [],
-  transcript: episode.transcript || [],
-  transcriptText: episode.transcriptText || ""
+  transcript: episode.transcript || {},
+  transcriptText: episode.transcript?.transcriptData || ""
 })}></script>
 
 <script type="module">
@@ -2165,7 +2163,7 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
     }
 
     init() {
-      console.log('Initializing Multi-Format Transcript Sync System...');
+      console.log('Transcript: Initializing Multi-Format Transcript Sync System...');
       
       // Get DOM elements
       const transcriptToggle = document.getElementById('transcript-toggle');
@@ -2174,23 +2172,38 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
       this.transcriptStatus = document.querySelector('.transcript-status');
       this.formatDetected = document.getElementById('format-detected');
       
-      // Load and parse transcript data
+      console.log('Transcript: DOM elements found:', {
+        transcriptToggle: !!transcriptToggle,
+        transcriptContainer: !!this.transcriptContainer,
+        subtitleOverlay: !!this.subtitleOverlay,
+        transcriptStatus: !!this.transcriptStatus,
+        formatDetected: !!this.formatDetected
+      });
+      
+      // Load and parse transcript data FIRST
+      console.log('Transcript: Starting data loading...');
       this.loadRawTranscriptData();
       
       // Set up event listeners
       if (transcriptToggle) {
         transcriptToggle.addEventListener('click', () => this.toggleTranscript());
+        console.log('Transcript: Toggle event listener added');
       }
       
-      // Wait for media player to be ready
-      this.setupMediaPlayerSync();
-      
-      console.log('Transcript system initialized with', this.transcriptData.length, 'segments');
+      console.log('Transcript: Data loading complete. Parsed', this.transcriptData.length, 'segments');
       
       // Also check if transcript data is empty and show helpful message
       if (this.transcriptData.length === 0) {
-        console.log('No transcript segments parsed. Check transcript format and data.');
+        console.log('Transcript: No segments found. Check transcript format and data.');
         this.updateFormatDetected('No segments found', false);
+      } else {
+        console.log('Transcript: Successfully parsed segments, rendering transcript immediately...');
+        // Render transcript immediately for users to read
+        this.renderTranscriptHTML();
+        // Show transcript by default when data is available
+        this.showTranscriptByDefault();
+        // Set up media sync for when playback starts (non-blocking)
+        this.setupMediaPlayerSync();
       }
     }
 
@@ -2543,6 +2556,25 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
         toggleText.textContent = 'Show Transcript';
         this.updateStatus('Transcript hidden');
       }
+    }
+
+    showTranscriptByDefault() {
+      // Automatically show transcript when data is available
+      this.isTranscriptVisible = true;
+      const toggleBtn = document.getElementById('transcript-toggle');
+      const toggleText = toggleBtn ? toggleBtn.querySelector('.toggle-text') : null;
+      
+      if (this.transcriptContainer) {
+        this.transcriptContainer.style.display = 'block';
+        console.log('Transcript: Showing transcript by default since data is available');
+      }
+      
+      if (toggleText) {
+        toggleText.textContent = 'Hide Transcript';
+      }
+      
+      this.updateStatus('Transcript loaded and ready');
+      this.checkDisplayMode();
     }
 
     checkDisplayMode() {
