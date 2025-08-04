@@ -949,26 +949,30 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
   /* Subtitle Overlay - For video mode */
   .subtitle-overlay {
     position: absolute;
-    bottom: 60px;
+    bottom: 20px;
     left: 50%;
     transform: translateX(-50%);
-    z-index: 100;
+    z-index: 9999 !important;
     pointer-events: none;
     display: none;
+    width: 100%;
   }
 
   .subtitle-text {
-    background: rgba(0, 0, 0, 0.8);
-    color: white;
-    padding: 0.5rem 1rem;
-    border-radius: 6px;
-    font-size: 1rem;
+    background: rgba(0, 0, 0, 0.95) !important;
+    color: #ffffff !important;
+    padding: 1rem 2rem;
+    border-radius: 8px;
+    font-size: 1.3rem !important;
+    font-weight: 700;
     line-height: 1.4;
     text-align: center;
-    max-width: 80vw;
+    max-width: 90%;
+    margin: 0 auto;
     word-wrap: break-word;
-    backdrop-filter: blur(4px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
   }
 
   /* Video container positioning for subtitles */
@@ -1127,6 +1131,8 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
     
     // Basic Player Controller
     let currentMediaPlayer = null;
+    // Make media player globally accessible for transcript sync
+    window.currentMediaPlayer = null;
     let currentChapterIndex = 0;
     let lastSyncTime = 0;
     
@@ -1148,6 +1154,7 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
     // Set initial media player (prefer audio if available)
     if (audio) {
       currentMediaPlayer = audio;
+      window.currentMediaPlayer = audio;
       console.log('Set audio as initial player');
       
       // Set initial audio-only view since audio is default
@@ -1160,6 +1167,7 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
       }
     } else if (video) {
       currentMediaPlayer = video;
+      window.currentMediaPlayer = video;
       console.log('Set video as initial player');
     }
     
@@ -1198,12 +1206,23 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
           console.log('Episode container classes:', episodeContainer.className);
         }
         
+        // Notify transcript system of mode change
+        if (window.transcriptSync) {
+          console.log('Notifying transcript system of mode change to:', type);
+          window.transcriptSync.checkDisplayMode();
+          // Reconnect to the new media player after a short delay to ensure media switch is complete
+          setTimeout(() => {
+            window.transcriptSync.reconnectMediaPlayer();
+          }, 100);
+        }
+        
         
         // Switch media containers and players
         if (type === 'audio' && audio && audioContainer) {
           audioContainer.classList.add('active');
           if (videoContainer) videoContainer.classList.remove('active');
           currentMediaPlayer = audio;
+      window.currentMediaPlayer = audio;
           
           // Sync time and resume playback if needed
           audio.currentTime = currentTime;
@@ -1216,6 +1235,7 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
           if (audioContainer) audioContainer.classList.remove('active');
           videoContainer.classList.add('active');
           currentMediaPlayer = video;
+      window.currentMediaPlayer = video;
           
           // Sync time and resume playback if needed
           video.currentTime = currentTime;
@@ -2509,19 +2529,16 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
 
     setupMediaPlayerSync() {
       let attempts = 0;
-      const maxAttempts = 10; // Max 10 seconds of trying
+      const maxAttempts = 20; // Max 20 attempts over ~30 seconds
       
       const trySetupPlayer = () => {
         attempts++;
         this.mediaPlayer = window.currentMediaPlayer;
         
+        console.log(`Transcript: Sync attempt ${attempts}/${maxAttempts}, media player:`, !!this.mediaPlayer);
+        
         if (this.mediaPlayer) {
-          console.log('Transcript: Media player found, setting up sync');
-          this.mediaPlayer.addEventListener('timeupdate', () => {
-            this.syncTranscript(this.mediaPlayer.currentTime);
-          });
-          
-          this.updateStatus('Ready - transcript will sync during playback');
+          this.connectToMediaPlayer();
           return;
         }
         
@@ -2531,13 +2548,71 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
           return;
         }
         
-        // Try less frequently to reduce console spam
-        console.log(`Transcript: Waiting for media player (attempt ${attempts}/${maxAttempts})`);
-        setTimeout(trySetupPlayer, 2000);
+        // Try more frequently initially, then less frequently
+        const delay = attempts < 5 ? 500 : (attempts < 10 ? 1000 : 2000);
+        console.log(`Transcript: Waiting for media player (attempt ${attempts}/${maxAttempts}), next try in ${delay}ms`);
+        setTimeout(trySetupPlayer, delay);
       };
       
-      // Wait a bit longer initially to let other systems initialize first
-      setTimeout(trySetupPlayer, 3000);
+      // Start trying immediately
+      trySetupPlayer();
+    }
+
+    connectToMediaPlayer() {
+      if (!this.mediaPlayer) return;
+      
+      console.log('Transcript: Media player found, setting up sync');
+      console.log('Transcript: Media player type:', this.mediaPlayer.tagName);
+      console.log('Transcript: Media player source:', this.mediaPlayer.src || this.mediaPlayer.currentSrc);
+      
+      // Remove old event listeners if they exist
+      if (this.mediaPlayer.transcriptTimeUpdateListener) {
+        this.mediaPlayer.removeEventListener('timeupdate', this.mediaPlayer.transcriptTimeUpdateListener);
+      }
+      if (this.mediaPlayer.transcriptPlayListener) {
+        this.mediaPlayer.removeEventListener('play', this.mediaPlayer.transcriptPlayListener);
+      }
+      if (this.mediaPlayer.transcriptPauseListener) {
+        this.mediaPlayer.removeEventListener('pause', this.mediaPlayer.transcriptPauseListener);
+      }
+      
+      // Create new event listeners
+      this.mediaPlayer.transcriptTimeUpdateListener = () => {
+        console.log('Transcript: TimeUpdate event - currentTime:', this.mediaPlayer.currentTime);
+        this.syncTranscript(this.mediaPlayer.currentTime);
+      };
+      
+      this.mediaPlayer.transcriptPlayListener = () => {
+        console.log('Transcript: Media player started playing');
+      };
+      
+      this.mediaPlayer.transcriptPauseListener = () => {
+        console.log('Transcript: Media player paused');
+      };
+      
+      // Add new event listeners
+      this.mediaPlayer.addEventListener('timeupdate', this.mediaPlayer.transcriptTimeUpdateListener);
+      this.mediaPlayer.addEventListener('play', this.mediaPlayer.transcriptPlayListener);
+      this.mediaPlayer.addEventListener('pause', this.mediaPlayer.transcriptPauseListener);
+      
+      this.updateStatus('Ready - transcript will sync during playback');
+    }
+
+    reconnectMediaPlayer() {
+      console.log('Transcript: Reconnecting to new media player...');
+      console.log('Transcript: Current connected player:', this.mediaPlayer?.tagName, this.mediaPlayer?.src || this.mediaPlayer?.currentSrc);
+      console.log('Transcript: Window.currentMediaPlayer:', window.currentMediaPlayer?.tagName, window.currentMediaPlayer?.src || window.currentMediaPlayer?.currentSrc);
+      
+      const newMediaPlayer = window.currentMediaPlayer;
+      
+      if (newMediaPlayer !== this.mediaPlayer) {
+        console.log('Transcript: New media player detected, switching connection');
+        console.log('Transcript: Switching from', this.mediaPlayer?.tagName, 'to', newMediaPlayer?.tagName);
+        this.mediaPlayer = newMediaPlayer;
+        this.connectToMediaPlayer();
+      } else {
+        console.log('Transcript: Same media player, no reconnection needed');
+      }
     }
 
     toggleTranscript() {
@@ -2581,17 +2656,26 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
       const episodeContainer = document.querySelector('.episode-container');
       this.isVideoMode = episodeContainer && !episodeContainer.classList.contains('audio-only-view');
       
-      console.log('Current display mode:', this.isVideoMode ? 'video' : 'audio');
+      console.log('Transcript: Current display mode:', this.isVideoMode ? 'video' : 'audio');
+      console.log('Transcript: isTranscriptVisible:', this.isTranscriptVisible);
+      console.log('Transcript: subtitleOverlay element:', !!this.subtitleOverlay);
+      console.log('Transcript: transcriptContainer element:', !!this.transcriptContainer);
       
       if (this.isVideoMode && this.isTranscriptVisible) {
         // In video mode, show subtitles instead of scrolling transcript
-        this.subtitleOverlay.style.display = 'block';
+        console.log('Transcript: Switching to video mode - showing subtitles');
+        if (this.subtitleOverlay) {
+          this.subtitleOverlay.style.display = 'block';
+        }
         if (this.transcriptContainer) {
           this.transcriptContainer.style.display = 'none';
         }
       } else if (this.isTranscriptVisible) {
         // In audio mode, show scrolling transcript
-        this.subtitleOverlay.style.display = 'none';
+        console.log('Transcript: Switching to audio mode - showing transcript container');
+        if (this.subtitleOverlay) {
+          this.subtitleOverlay.style.display = 'none';
+        }
         if (this.transcriptContainer) {
           this.transcriptContainer.style.display = 'block';
         }
@@ -2635,6 +2719,8 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
       if (newIndex >= 0 && this.transcriptData[newIndex]) {
         const activeSegment = this.transcriptData[newIndex];
         
+        console.log('Transcript: Active segment changed to:', activeSegment.text.substring(0, 50) + '...');
+        
         // Add active class to current segment
         activeSegment.element.classList.add('active');
         
@@ -2643,9 +2729,11 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
         
         if (this.isVideoMode) {
           // Show as subtitle overlay
+          console.log('Transcript: In video mode, displaying subtitle');
           this.displaySubtitle(activeSegment);
         } else {
           // Scroll to active segment in transcript container
+          console.log('Transcript: In audio mode, scrolling to segment');
           this.scrollToActiveSegment(activeSegment);
         }
         
@@ -2654,18 +2742,62 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
     }
 
     displaySubtitle(segment) {
-      if (!this.subtitleOverlay) return;
+      console.log('Transcript: displaySubtitle called with segment:', segment.text.substring(0, 50) + '...');
+      
+      if (!this.subtitleOverlay) {
+        console.log('Transcript: No subtitle overlay element found');
+        return;
+      }
+      
+      console.log('Transcript: Subtitle overlay element found:', this.subtitleOverlay);
+      console.log('Transcript: Subtitle overlay current display:', this.subtitleOverlay.style.display);
       
       const subtitleText = this.subtitleOverlay.querySelector('.subtitle-text');
       if (subtitleText) {
+        console.log('Transcript: Setting subtitle text:', segment.text);
         subtitleText.textContent = segment.text;
         this.subtitleOverlay.style.display = 'block';
         
-        // Position relative to video container
-        const videoContainer = document.querySelector('.media-container.active');
-        if (videoContainer) {
-          videoContainer.appendChild(this.subtitleOverlay);
+        console.log('Transcript: Subtitle overlay after setting display block:', this.subtitleOverlay.style.display);
+        console.log('Transcript: Subtitle overlay computed style:', getComputedStyle(this.subtitleOverlay).display);
+        console.log('Transcript: Subtitle overlay position:', getComputedStyle(this.subtitleOverlay).position);
+        
+        // Ensure subtitle overlay is positioned correctly
+        // First try to find an active video container
+        let videoContainer = document.querySelector('.media-container.active');
+        if (!videoContainer) {
+          // Fallback to any media container that's visible
+          videoContainer = document.querySelector('.media-container:not([style*="display: none"])');
         }
+        if (!videoContainer) {
+          // Final fallback - just use the episode container
+          videoContainer = document.querySelector('.episode-container');
+        }
+        
+        console.log('Transcript: Found video container:', videoContainer?.tagName, videoContainer?.className);
+        
+        if (videoContainer && !videoContainer.contains(this.subtitleOverlay)) {
+          console.log('Transcript: Moving subtitle overlay to video container');
+          videoContainer.style.position = 'relative'; // Ensure container is positioned
+          videoContainer.appendChild(this.subtitleOverlay);
+          console.log('Transcript: Subtitle overlay moved to:', videoContainer.tagName);
+        } else if (videoContainer) {
+          console.log('Transcript: Subtitle overlay already in video container');
+        }
+        
+        // Force styles to ensure visibility
+        this.subtitleOverlay.style.zIndex = '9999';
+        this.subtitleOverlay.style.pointerEvents = 'none';
+        
+        
+        console.log('Transcript: Final subtitle overlay styles:', {
+          display: this.subtitleOverlay.style.display,
+          position: getComputedStyle(this.subtitleOverlay).position,
+          zIndex: this.subtitleOverlay.style.zIndex,
+          bottom: getComputedStyle(this.subtitleOverlay).bottom
+        });
+      } else {
+        console.log('Transcript: No .subtitle-text element found inside overlay');
       }
     }
 
