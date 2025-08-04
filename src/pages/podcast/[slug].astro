@@ -2268,10 +2268,15 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
 
     parseWEBVTT(data) {
       console.log('Transcript: Parsing WEBVTT data...');
+      console.log('Transcript: Data length:', data.length, 'characters');
+      console.log('Transcript: First 200 characters:', data.substring(0, 200));
+      
       const segments = [];
       const lines = data.split('\n');
       let currentSegment = null;
       let lineNumber = 0;
+      
+      console.log('Transcript: Total lines to process:', lines.length);
       
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i].trim();
@@ -2280,8 +2285,8 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
         // Skip WEBVTT header and empty lines
         if (line === 'WEBVTT' || line === '') continue;
         
-        // Check for timestamp line
-        const timestampMatch = line.match(/^(\d{2}:\d{2}:\d{2}\.?\d{3}) --> (\d{2}:\d{2}:\d{2}\.?\d{3})/);
+        // Check for timestamp line - more flexible pattern for WEBVTT
+        const timestampMatch = line.match(/^(\d{2}:\d{2}:\d{2}\.?\d{1,3}) --> (\d{2}:\d{2}:\d{2}\.?\d{1,3})/);
         if (timestampMatch) {
           // Save previous segment if exists
           if (currentSegment && currentSegment.text.length > 0) {
