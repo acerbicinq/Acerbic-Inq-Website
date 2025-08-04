@@ -706,8 +706,12 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
     height: 40px;
   }
 
-  /* Audio-only view styles */
+  /* Audio-only view styles - hide visual streaming elements but keep functionality */
   .audio-only-view .youtube-embed-container {
+    display: none !important;
+  }
+  
+  .audio-only-view .streaming-option {
     display: none !important;
   }
   
@@ -886,6 +890,8 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
       if (episodeContainer) {
         episodeContainer.classList.add('audio-only-view');
         console.log('Initial audio-only view enabled - YouTube iframes hidden');
+        console.log('Initial episode container classes:', episodeContainer.className);
+        console.log('Initial YouTube containers found:', document.querySelectorAll('.youtube-embed-container').length);
       }
     } else if (video) {
       currentMediaPlayer = video;
@@ -919,9 +925,12 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
         if (type === 'audio') {
           episodeContainer.classList.add('audio-only-view');
           console.log('Enabled audio-only view - hiding YouTube iframes');
+          console.log('Episode container classes:', episodeContainer.className);
+          console.log('YouTube containers found:', document.querySelectorAll('.youtube-embed-container').length);
         } else {
           episodeContainer.classList.remove('audio-only-view');
           console.log('Disabled audio-only view - showing YouTube iframes');
+          console.log('Episode container classes:', episodeContainer.className);
         }
         
         // Switch media containers and players
