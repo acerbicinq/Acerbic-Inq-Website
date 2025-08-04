@@ -290,6 +290,20 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
     <nav class="episode-navigation">
       <a href="/podcast" class="back-link">← Back to Podcast</a>
     </nav>
+
+    <!-- YouTube Interlude Video Player (shown in video mode during interludes) -->
+    <div id="youtube-interlude-overlay" class="youtube-interlude-overlay" style="display: none;">
+      <div class="youtube-overlay-content">
+        <div class="youtube-overlay-header">
+          <h3 id="youtube-overlay-title">🎵 Interlude Music</h3>
+          <button id="youtube-overlay-close" class="youtube-overlay-close">✕</button>
+        </div>
+        <div id="youtube-interlude-visible-player" class="youtube-visible-player"></div>
+        <div class="youtube-overlay-info">
+          <p id="youtube-overlay-track-info">Loading track...</p>
+        </div>
+      </div>
+    </div>
   </div>
 </BaseLayout>
 
@@ -727,6 +741,108 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
     display: none !important;
   }
 
+  /* YouTube Interlude Overlay Styles */
+  .youtube-interlude-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .youtube-overlay-content {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    max-width: 90vw;
+    max-height: 90vh;
+    min-width: 400px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  }
+
+  .youtube-overlay-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #e1e1e1;
+  }
+
+  .youtube-overlay-header h3 {
+    margin: 0;
+    color: #007acc;
+    font-size: 1.2rem;
+  }
+
+  .youtube-overlay-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s ease;
+  }
+
+  .youtube-overlay-close:hover {
+    background: rgba(0, 0, 0, 0.1);
+  }
+
+  .youtube-visible-player {
+    width: 100%;
+    aspect-ratio: 16/9;
+    background: #000;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .youtube-overlay-info {
+    margin-top: 1rem;
+    text-align: center;
+  }
+
+  .youtube-overlay-info p {
+    margin: 0;
+    color: #666;
+    font-size: 0.9rem;
+  }
+
+  /* Hide overlay in audio-only mode */
+  .audio-only-view .youtube-interlude-overlay {
+    display: none !important;
+  }
+
+  /* Mobile responsive overlay */
+  @media (max-width: 768px) {
+    .youtube-overlay-content {
+      min-width: 95vw;
+      max-width: 95vw;
+      margin: 1rem;
+      padding: 1rem;
+    }
+    
+    .youtube-overlay-header h3 {
+      font-size: 1rem;
+    }
+    
+    .youtube-overlay-close {
+      width: 35px;
+      height: 35px;
+      font-size: 1.2rem;
+    }
+  }
+
   /* Animation for pulsing status indicators */
   @keyframes pulse {
     0% { opacity: 1; }
@@ -931,6 +1047,11 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
           episodeContainer.classList.remove('audio-only-view');
           console.log('Disabled audio-only view - showing YouTube iframes');
           console.log('Episode container classes:', episodeContainer.className);
+        }
+        
+        // Switch YouTube interlude mode if currently playing
+        if (window.switchYouTubeInterludeMode) {
+          window.switchYouTubeInterludeMode();
         }
         
         // Switch media containers and players
@@ -1561,15 +1682,19 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
 
 <!-- YouTube Interlude System -->
 <script>
-  // YouTube Interlude System - Simple and effective
+  // YouTube Interlude System - Enhanced for seamless audio/video switching
   let youtubeInterludeSystem = {
     currentYouTubePlayer: null,
+    visibleYouTubePlayer: null,
     youtubeAPIReady: false,
     interludeQueue: [],
     currentInterludeIndex: 0,
     isPlayingInterlude: false,
     pendingChapterStart: null,
-    userPaused: false
+    userPaused: false,
+    currentVideoId: null,
+    currentTrackInfo: null,
+    isVideoMode: false
   };
 
   // Load YouTube IFrame API - simple approach
@@ -1595,6 +1720,148 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
     if (!url) return null;
     const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/);
     return match ? match[1] : null;
+  }
+
+  // Check if currently in video mode
+  function isCurrentlyVideoMode() {
+    const episodeContainer = document.querySelector('.episode-container');
+    return episodeContainer && !episodeContainer.classList.contains('audio-only-view');
+  }
+
+  // Switch YouTube interlude between audio and video modes
+  function switchYouTubeInterludeMode() {
+    if (!youtubeInterludeSystem.isPlayingInterlude || !youtubeInterludeSystem.currentVideoId) {
+      return;
+    }
+
+    const isVideoMode = isCurrentlyVideoMode();
+    console.log('Switching YouTube interlude mode to:', isVideoMode ? 'video' : 'audio');
+
+    if (isVideoMode && !youtubeInterludeSystem.visibleYouTubePlayer) {
+      // Switch to video mode - create visible player
+      createVisibleYouTubePlayer();
+    } else if (!isVideoMode && youtubeInterludeSystem.visibleYouTubePlayer) {
+      // Switch to audio mode - hide visible player
+      hideVisibleYouTubePlayer();
+    }
+  }
+
+  // Create visible YouTube player for video mode
+  function createVisibleYouTubePlayer() {
+    if (!youtubeInterludeSystem.currentVideoId || youtubeInterludeSystem.visibleYouTubePlayer) {
+      return;
+    }
+
+    console.log('Creating visible YouTube player for video mode');
+    
+    // Show the overlay
+    const overlay = document.getElementById('youtube-interlude-overlay');
+    const trackInfo = document.getElementById('youtube-overlay-track-info');
+    
+    if (overlay) {
+      overlay.style.display = 'flex';
+      
+      if (trackInfo && youtubeInterludeSystem.currentTrackInfo) {
+        trackInfo.textContent = `${youtubeInterludeSystem.currentTrackInfo.title} by ${youtubeInterludeSystem.currentTrackInfo.artist}`;
+      }
+    }
+
+    // Get current playback time from hidden player
+    let currentTime = 0;
+    if (youtubeInterludeSystem.currentYouTubePlayer) {
+      try {
+        currentTime = youtubeInterludeSystem.currentYouTubePlayer.getCurrentTime();
+      } catch (error) {
+        console.warn('Could not get current time from hidden player:', error);
+      }
+    }
+
+    // Create visible player
+    const visibleContainer = document.getElementById('youtube-interlude-visible-player');
+    if (visibleContainer) {
+      youtubeInterludeSystem.visibleYouTubePlayer = new YT.Player(visibleContainer, {
+        height: '100%',
+        width: '100%',
+        videoId: youtubeInterludeSystem.currentVideoId,
+        playerVars: {
+          autoplay: 1,
+          controls: 1,
+          start: Math.floor(currentTime)
+        },
+        events: {
+          onReady: function(event) {
+            console.log('Visible YouTube player ready, seeking to:', currentTime);
+            // Pause the hidden player to avoid double playback
+            if (youtubeInterludeSystem.currentYouTubePlayer) {
+              try {
+                youtubeInterludeSystem.currentYouTubePlayer.pauseVideo();
+              } catch (error) {
+                console.warn('Could not pause hidden player:', error);
+              }
+            }
+          },
+          onStateChange: function(event) {
+            if (event.data === YT.PlayerState.ENDED) {
+              // Video ended, continue interlude sequence
+              console.log('Visible YouTube player ended, cleaning up and continuing sequence');
+              hideVisibleYouTubePlayer();
+              
+              // Signal the hidden player to end as well to continue the sequence
+              if (youtubeInterludeSystem.currentYouTubePlayer) {
+                try {
+                  // Trigger the end event on the hidden player to continue the promise chain
+                  youtubeInterludeSystem.currentYouTubePlayer.stopVideo();
+                } catch (error) {
+                  console.warn('Could not stop hidden player:', error);
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+  }
+
+  // Hide visible YouTube player and resume hidden playback
+  function hideVisibleYouTubePlayer() {
+    if (!youtubeInterludeSystem.visibleYouTubePlayer) {
+      return;
+    }
+
+    console.log('Hiding visible YouTube player, resuming hidden playback');
+
+    // Get current time from visible player
+    let currentTime = 0;
+    try {
+      currentTime = youtubeInterludeSystem.visibleYouTubePlayer.getCurrentTime();
+    } catch (error) {
+      console.warn('Could not get current time from visible player:', error);
+    }
+
+    // Destroy visible player
+    try {
+      youtubeInterludeSystem.visibleYouTubePlayer.destroy();
+      youtubeInterludeSystem.visibleYouTubePlayer = null;
+    } catch (error) {
+      console.warn('Error destroying visible player:', error);
+    }
+
+    // Hide overlay
+    const overlay = document.getElementById('youtube-interlude-overlay');
+    if (overlay) {
+      overlay.style.display = 'none';
+    }
+
+    // Resume hidden player from current time
+    if (youtubeInterludeSystem.currentYouTubePlayer) {
+      try {
+        youtubeInterludeSystem.currentYouTubePlayer.seekTo(currentTime, true);
+        youtubeInterludeSystem.currentYouTubePlayer.playVideo();
+        console.log('Resumed hidden player from time:', currentTime);
+      } catch (error) {
+        console.warn('Could not resume hidden player:', error);
+      }
+    }
   }
 
   // Play YouTube interlude
@@ -1653,6 +1920,13 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
       const trackArtist = track.artist || 'Unknown Artist';
       console.log(`Playing YouTube track: ${trackTitle} by ${trackArtist} (${videoId})`);
 
+      // Store current track info for mode switching
+      youtubeInterludeSystem.currentVideoId = videoId;
+      youtubeInterludeSystem.currentTrackInfo = {
+        title: trackTitle,
+        artist: trackArtist
+      };
+
       // Create fresh hidden player container for each track
       const existingContainer = document.getElementById('youtube-interlude-player');
       if (existingContainer) {
@@ -1701,6 +1975,13 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
             try {
               event.target.playVideo();
               console.log('playVideo() called successfully for:', trackTitle);
+              
+              // Check if we should immediately switch to video mode
+              if (isCurrentlyVideoMode()) {
+                setTimeout(() => {
+                  createVisibleYouTubePlayer();
+                }, 500); // Small delay to ensure playback starts
+              }
             } catch (error) {
               console.error('Error calling playVideo() for:', trackTitle, error);
               reject(error);
@@ -1711,6 +1992,13 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
             
             if (event.data === YT.PlayerState.ENDED) {
               console.log('YouTube track ended:', trackTitle);
+              // Clean up current track info
+              youtubeInterludeSystem.currentVideoId = null;
+              youtubeInterludeSystem.currentTrackInfo = null;
+              // Hide visible player if showing
+              if (youtubeInterludeSystem.visibleYouTubePlayer) {
+                hideVisibleYouTubePlayer();
+              }
               resolve();
             } else if (event.data === YT.PlayerState.PLAYING) {
               console.log('YouTube track playing:', trackTitle);
@@ -1720,6 +2008,12 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
           },
           onError: function(event) {
             console.error('YouTube player error:', event.data);
+            // Clean up on error
+            youtubeInterludeSystem.currentVideoId = null;
+            youtubeInterludeSystem.currentTrackInfo = null;
+            if (youtubeInterludeSystem.visibleYouTubePlayer) {
+              hideVisibleYouTubePlayer();
+            }
             reject(new Error(`YouTube player error: ${event.data}`));
           }
         }
@@ -1770,6 +2064,7 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
   // Make functions globally available
   window.playYouTubeInterlude = playYouTubeInterlude;
   window.stopYouTubeInterlude = stopYouTubeInterlude;
+  window.switchYouTubeInterludeMode = switchYouTubeInterludeMode;
   window.youtubeInterludeSystem = youtubeInterludeSystem;
 
   // Initialize YouTube system
@@ -1777,5 +2072,25 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
     console.log('YouTube interlude system initializing...');
     loadYouTubeAPI();
     updateInterludeUI();
+    
+    // Add event listener for overlay close button
+    const closeButton = document.getElementById('youtube-overlay-close');
+    if (closeButton) {
+      closeButton.addEventListener('click', () => {
+        console.log('YouTube overlay close button clicked');
+        hideVisibleYouTubePlayer();
+      });
+    }
+    
+    // Close overlay when clicking outside the content
+    const overlay = document.getElementById('youtube-interlude-overlay');
+    if (overlay) {
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+          console.log('YouTube overlay background clicked');
+          hideVisibleYouTubePlayer();
+        }
+      });
+    }
   });
 </script>
