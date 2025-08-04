@@ -190,9 +190,14 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
                           <div class="streaming-options">
                             {track.streamingLinks?.filter(link => link.platform !== 'spotify').map((link, linkIndex) => (
                               <div class="streaming-option" data-platform={link.platform}>
-                                {link.platform === 'youtube-music' && link.embedCode && (
-                                  <div class="youtube-embed-container">
-                                    <div set:html={link.embedCode.replace('width="560" height="315"', 'width="100%" height="200"')}></div>
+                                {link.platform === 'youtube-music' && link.url && (
+                                  <div class="youtube-embed-container" data-youtube-url={link.url} data-track-title={track.title || track.songTitle} data-track-artist={track.artist}>
+                                    <div class="youtube-placeholder">
+                                      <div class="youtube-placeholder-content">
+                                        <span class="youtube-icon">▶</span>
+                                        <p>YouTube video will play here during interludes in video mode</p>
+                                      </div>
+                                    </div>
                                   </div>
                                 )}
                                 
@@ -648,17 +653,13 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
     position: relative;
   }
 
-  .youtube-embed-container iframe {
-    border-radius: 8px;
-    max-width: 100%;
-  }
-
   .youtube-embed-container {
     position: relative;
     padding-bottom: 56.25%; /* 16:9 aspect ratio */
     height: 0;
     overflow: hidden;
     border-radius: 8px;
+    background: #f0f0f0;
   }
 
   .youtube-embed-container iframe {
@@ -667,6 +668,39 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
     left: 0;
     width: 100%;
     height: 100%;
+    border-radius: 8px;
+  }
+
+  .youtube-placeholder {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 100%);
+    border-radius: 8px;
+  }
+
+  .youtube-placeholder-content {
+    text-align: center;
+    color: #666;
+  }
+
+  .youtube-icon {
+    font-size: 2rem;
+    color: #ff0000;
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+
+  .youtube-placeholder p {
+    margin: 0;
+    font-size: 0.9rem;
+    max-width: 200px;
+    line-height: 1.4;
   }
 
   .external-link {
@@ -1601,6 +1635,12 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
   }
 
 
+  // Check if currently in video mode
+  function isCurrentlyVideoMode() {
+    const episodeContainer = document.querySelector('.episode-container');
+    return episodeContainer && !episodeContainer.classList.contains('audio-only-view');
+  }
+
   // Play YouTube interlude
   async function playYouTubeInterlude(track) {
     return new Promise((resolve, reject) => {
@@ -1657,17 +1697,54 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
       const trackArtist = track.artist || 'Unknown Artist';
       console.log(`Playing YouTube track: ${trackTitle} by ${trackArtist} (${videoId})`);
 
-      // Create fresh hidden player container for each track
-      const existingContainer = document.getElementById('youtube-interlude-player');
-      if (existingContainer) {
-        existingContainer.remove();
+      // Determine if we should use visible or hidden player
+      const isVideoMode = isCurrentlyVideoMode();
+      console.log('Current mode:', isVideoMode ? 'video' : 'audio');
+
+      let playerContainer;
+      let playerConfig;
+
+      if (isVideoMode) {
+        // Find the corresponding YouTube embed container for this track
+        const embedContainers = document.querySelectorAll('.youtube-embed-container');
+        let targetContainer = null;
+        
+        for (const container of embedContainers) {
+          const containerUrl = container.dataset.youtubeUrl;
+          if (containerUrl && containerUrl === youtubeUrl) {
+            targetContainer = container;
+            break;
+          }
+        }
+
+        if (targetContainer) {
+          console.log('Using visible YouTube player in embed container');
+          playerContainer = targetContainer;
+          
+          // Clear placeholder content
+          targetContainer.innerHTML = '';
+          
+          playerConfig = {
+            height: '100%',
+            width: '100%',
+            videoId: videoId,
+            playerVars: {
+              autoplay: 1,
+              controls: 1,
+              modestbranding: 1,
+              rel: 0
+            }
+          };
+        } else {
+          console.log('No matching embed container found, falling back to hidden player');
+          playerContainer = createHiddenPlayerContainer(trackTitle);
+          playerConfig = getHiddenPlayerConfig(videoId);
+        }
+      } else {
+        console.log('Using hidden YouTube player for audio mode');
+        playerContainer = createHiddenPlayerContainer(trackTitle);
+        playerConfig = getHiddenPlayerConfig(videoId);
       }
-      
-      const playerContainer = document.createElement('div');
-      playerContainer.id = 'youtube-interlude-player';
-      playerContainer.style.cssText = 'position: fixed; top: -1000px; left: -1000px; width: 1px; height: 1px;';
-      document.body.appendChild(playerContainer);
-      console.log('Created fresh player container for:', trackTitle);
 
       // Destroy existing player properly
       if (youtubeInterludeSystem.currentYouTubePlayer) {
@@ -1687,18 +1764,7 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
 
       // Create new YouTube player
       youtubeInterludeSystem.currentYouTubePlayer = new YT.Player(playerContainer, {
-        height: '1',
-        width: '1',
-        videoId: videoId,
-        playerVars: {
-          autoplay: 1,
-          controls: 0,
-          disablekb: 1,
-          fs: 0,
-          modestbranding: 1,
-          rel: 0,
-          showinfo: 0
-        },
+        ...playerConfig,
         events: {
           onReady: function(event) {
             console.log('YouTube player ready for:', trackTitle, '- starting playback');
@@ -1715,6 +1781,19 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
             
             if (event.data === YT.PlayerState.ENDED) {
               console.log('YouTube track ended:', trackTitle);
+              
+              // If using visible player, restore placeholder
+              if (isVideoMode && playerContainer.classList && playerContainer.classList.contains('youtube-embed-container')) {
+                playerContainer.innerHTML = `
+                  <div class="youtube-placeholder">
+                    <div class="youtube-placeholder-content">
+                      <span class="youtube-icon">▶</span>
+                      <p>YouTube video will play here during interludes in video mode</p>
+                    </div>
+                  </div>
+                `;
+              }
+              
               resolve();
             } else if (event.data === YT.PlayerState.PLAYING) {
               console.log('YouTube track playing:', trackTitle);
@@ -1724,11 +1803,57 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
           },
           onError: function(event) {
             console.error('YouTube player error:', event.data);
+            
+            // If using visible player, restore placeholder
+            if (isVideoMode && playerContainer.classList && playerContainer.classList.contains('youtube-embed-container')) {
+              playerContainer.innerHTML = `
+                <div class="youtube-placeholder">
+                  <div class="youtube-placeholder-content">
+                    <span class="youtube-icon">▶</span>
+                    <p>YouTube video will play here during interludes in video mode</p>
+                  </div>
+                </div>
+              `;
+            }
+            
             reject(new Error(`YouTube player error: ${event.data}`));
           }
         }
       });
     });
+  }
+
+  // Helper function to create hidden player container
+  function createHiddenPlayerContainer(trackTitle) {
+    const existingContainer = document.getElementById('youtube-interlude-player');
+    if (existingContainer) {
+      existingContainer.remove();
+    }
+    
+    const playerContainer = document.createElement('div');
+    playerContainer.id = 'youtube-interlude-player';
+    playerContainer.style.cssText = 'position: fixed; top: -1000px; left: -1000px; width: 1px; height: 1px;';
+    document.body.appendChild(playerContainer);
+    console.log('Created fresh hidden player container for:', trackTitle);
+    return playerContainer;
+  }
+
+  // Helper function to get hidden player config
+  function getHiddenPlayerConfig(videoId) {
+    return {
+      height: '1',
+      width: '1',
+      videoId: videoId,
+      playerVars: {
+        autoplay: 1,
+        controls: 0,
+        disablekb: 1,
+        fs: 0,
+        modestbranding: 1,
+        rel: 0,
+        showinfo: 0
+      }
+    };
   }
 
   // Stop YouTube interlude
