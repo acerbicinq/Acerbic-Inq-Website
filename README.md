@@ -5,7 +5,9 @@ A modern podcast website featuring seamless interlude integration, built with As
 ## 🎧 Features
 
 - **Interactive Podcast Player** - Custom audio/video player with seamless mode switching
+- **Multi-Format Transcript System** - Real-time synchronized transcripts supporting WEBVTT, SRT, JSON, CSV formats
 - **Advanced Interlude System** - Automatic music playback with dual audio/video modes
+- **Dual-Mode Transcript Display** - Audio mode shows scrolling transcript, video mode displays subtitles
 - **YouTube Integration** - Dynamic video players that appear in-page during interludes
 - **Audio/Video Mode Toggle** - Switch between clean audio-only and full video experience
 - **Chapter-Based Navigation** - Jump to specific podcast sections with timestamps
@@ -176,6 +178,130 @@ chapters: [{
 
 This creates a seamless, radio-like experience where music bridges podcast content naturally while giving users complete control over their viewing preference.
 
+## 📝 Multi-Format Transcript System
+
+The website features a comprehensive transcript system that provides real-time synchronization with podcast content, supporting multiple transcript formats and seamless mode switching between audio and video experiences.
+
+### ✨ Core Features
+
+1. **Multi-Format Support** - Automatically detects and parses WEBVTT, SRT, JSON, CSV, and simple timestamp formats
+2. **Immediate Loading** - Transcripts display instantly on page load, no waiting for media player initialization  
+3. **Dual-Mode Display** - Audio mode shows scrolling transcript, video mode displays synchronized subtitles
+4. **Real-Time Sync** - Continuous timestamp tracking with automatic segment highlighting
+5. **Smart Reconnection** - Seamlessly switches between audio and video players when modes change
+6. **Auto-Visibility** - Automatically shows transcript when content is available
+
+### 🎯 Format Detection & Parsing
+
+The system automatically detects transcript formats:
+
+```javascript
+// WEBVTT Format
+WEBVTT
+
+00:00:01.419 --> 00:00:10.320
+I don't know who I am...
+
+// SRT Format  
+1
+00:00:01,419 --> 00:00:10,320
+I don't know who I am...
+
+// JSON Format
+[{"start": "00:01.419", "end": "00:10.320", "text": "I don't know who I am..."}]
+
+// Simple Timestamp Format
+[00:01.419] I don't know who I am...
+00:01.419: I don't know who I am...
+```
+
+### 🔄 Mode Switching Behavior
+
+#### Audio Mode
+- **Scrolling Transcript**: Full transcript displayed in scrollable container
+- **Active Highlighting**: Current segment highlighted as audio progresses
+- **Click Navigation**: Click any segment to jump to that timestamp
+- **Auto-Scroll**: Automatically scrolls to keep active segment visible
+
+#### Video Mode  
+- **Subtitle Overlay**: Transcript appears as subtitles over video content
+- **Professional Styling**: High-contrast text with shadows and background
+- **Real-Time Updates**: Subtitles change continuously as video progresses
+- **Non-Intrusive**: Positioned to not interfere with video controls
+
+### 🔧 Technical Implementation
+
+#### Smart Media Player Integration
+```javascript
+// Automatic reconnection when switching modes
+reconnectMediaPlayer() {
+  const newMediaPlayer = window.currentMediaPlayer;
+  if (newMediaPlayer !== this.mediaPlayer) {
+    this.mediaPlayer = newMediaPlayer;
+    this.connectToMediaPlayer();
+  }
+}
+```
+
+#### Format-Agnostic Parsing
+```javascript
+// Unified parsing system for all formats
+parseMultipleFormats(rawData) {
+  if (this.isWEBVTT(rawData)) return this.parseWEBVTT(rawData);
+  if (this.isSRT(rawData)) return this.parseSRT(rawData);
+  if (this.isJSON(rawData)) return this.parseJSON(rawData);
+  // ... additional format handlers
+}
+```
+
+#### Real-Time Synchronization
+```javascript
+// Continuous sync with media playback
+syncTranscript(currentTime) {
+  const activeSegment = this.findActiveSegment(currentTime);
+  if (this.isVideoMode) {
+    this.displaySubtitle(activeSegment);
+  } else {
+    this.scrollToActiveSegment(activeSegment);
+  }
+}
+```
+
+### 📊 Content Management Integration
+
+Transcript data is managed through Sanity CMS with flexible input options:
+
+```typescript
+// Sanity schema supports multiple input methods
+transcript: {
+  transcriptData: string,      // Paste transcript in any supported format
+  transcriptFile: file,        // Upload .vtt, .srt, .json, .txt, or .csv files
+  defaultSpeaker: string,      // Default speaker name (e.g., "Host")
+  enableSync: boolean,         // Auto-enabled when transcript data exists
+  formatHint: string          // Optional format specification for edge cases
+}
+```
+
+### 🎨 User Experience Features
+
+- **Instant Availability**: Transcript loads immediately, before media player is ready
+- **Seamless Transitions**: Smooth switching between audio transcript and video subtitles
+- **Professional Styling**: Clean, readable design with proper contrast and typography
+- **Accessibility**: High contrast subtitles with text shadows for visibility over any video content
+- **Performance Optimized**: Efficient parsing and rendering with minimal impact on page load
+
+### 🔄 Workflow Integration
+
+The transcript system integrates seamlessly with the existing interlude system:
+
+1. **Page Load** → Transcript parses and displays immediately
+2. **Media Play** → Real-time sync begins automatically  
+3. **Mode Switch** → Transcript adapts between scrolling/subtitle modes
+4. **Interlude Play** → Transcript pauses during music, resumes after
+5. **Chapter Navigation** → Transcript jumps to corresponding segments
+
+This creates a unified content experience where transcripts enhance both audio-focused listening and video viewing modes.
+
 ## 📁 Project Structure
 
 ```
@@ -261,7 +387,13 @@ This creates a seamless, radio-like experience where music bridges podcast conte
       fallbackAudio?: file
     }]
   }],
-  transcript?: text
+  transcript?: {
+    transcriptData: string,      // Multi-format transcript content (WEBVTT, SRT, JSON, etc.)
+    transcriptFile?: file,       // Alternative: upload transcript file (.vtt, .srt, .json, .txt, .csv)
+    defaultSpeaker?: string,     // Default speaker name (e.g., "Host", "Guest")
+    enableSync?: boolean,        // Enable real-time sync (auto-enabled when data exists)
+    formatHint?: string         // Optional format hint for edge cases
+  }
 }
 ```
 
