@@ -246,21 +246,6 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
       </div>
     )}
 
-    <!-- Transcript -->
-    {episode.transcript && (
-      <div class="transcript-section" style="display: none;">
-        <h2>Transcript</h2>
-        <div class="transcript-content">
-          {episode.transcript.map((entry, index) => (
-            <div class="transcript-entry" data-timestamp={entry.timestamp}>
-              <span class="timestamp">{entry.timestamp}</span>
-              <span class="speaker">{entry.speaker}:</span>
-              <span class="text">{entry.text}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    )}
 
     <!-- Guest Info -->
     {episode.guest && (
