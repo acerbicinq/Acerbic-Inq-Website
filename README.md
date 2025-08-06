@@ -4,6 +4,17 @@ A modern podcast website featuring seamless interlude integration, built with As
 
 ## 🎧 Features
 
+### 🎵 Music Features
+- **Interactive Music Player** - Custom WaveSurfer-based audio player with waveform visualization
+- **Multi-Format Lyrics System** - Real-time synchronized lyrics supporting LRC, SRT, JSON, and simple text formats
+- **Karaoke-Style Highlighting** - Current lyrics highlight with progressive coloring as songs play
+- **Smart Auto-Scroll** - Lyrics automatically scroll to keep current line centered in view
+- **Three Display Modes** - Toggle between hidden, synchronized, and static lyrics display
+- **File Upload Support** - Upload lyrics files directly through Sanity CMS (.lrc, .srt, .json, .txt)
+- **Format Auto-Detection** - Automatically detects and parses different lyrics formats
+- **Track Preloading** - Instant switching between album tracks with smart preloading
+
+### 🎧 Podcast Features  
 - **Interactive Podcast Player** - Custom audio/video player with seamless mode switching
 - **Multi-Format Transcript System** - Real-time synchronized transcripts supporting WEBVTT, SRT, JSON, CSV formats
 - **Advanced Interlude System** - Automatic music playback with dual audio/video modes
@@ -12,6 +23,8 @@ A modern podcast website featuring seamless interlude integration, built with As
 - **Audio/Video Mode Toggle** - Switch between clean audio-only and full video experience
 - **Chapter-Based Navigation** - Jump to specific podcast sections with timestamps
 - **Smart Container System** - YouTube videos play directly in embedded page containers
+
+### 🌐 General Features
 - **Responsive Design** - Optimized for desktop and mobile devices with adaptive layouts
 - **Content Management** - Powered by Sanity CMS for easy episode and interlude content updates
 
@@ -177,6 +190,134 @@ chapters: [{
 6. **Podcast Resume** → Next chapter begins automatically
 
 This creates a seamless, radio-like experience where music bridges podcast content naturally while giving users complete control over their viewing preference.
+
+## 🎵 Multi-Format Lyrics Reader System
+
+The website features a comprehensive lyrics system that provides real-time synchronization with music playback, supporting multiple lyrics formats and karaoke-style highlighting for an enhanced listening experience.
+
+### ✨ Core Features
+
+1. **Multi-Format Support** - Automatically detects and parses LRC, SRT, JSON, and simple text formats
+2. **Real-Time Synchronization** - Lyrics highlight in perfect sync with audio playback
+3. **Progressive Highlighting** - Current line highlighted with #303030 background, sung lines stay colored
+4. **Smart Auto-Scroll** - Automatically centers the current lyric line in the display area
+5. **Three Display Modes** - Toggle between hidden, synchronized, and static lyrics views
+6. **Flexible Input Methods** - Support both text input and file upload through Sanity CMS
+7. **Format Auto-Detection** - Intelligent parsing with manual format hints as fallback
+
+### 🎯 Supported Lyrics Formats
+
+The system automatically detects and parses multiple lyrics formats:
+
+```javascript
+// LRC (Synchronized) Format
+[00:12.34] Here we are now, entertain us
+[00:15.67] I feel stupid and contagious
+
+// SRT Format  
+1
+00:00:12,340 --> 00:00:15,670
+Here we are now, entertain us
+
+// JSON Format
+[{"time": "00:12.34", "text": "Here we are now, entertain us"}]
+
+// Simple Text Format
+[Verse 1]
+Here we are now, entertain us
+I feel stupid and contagious
+```
+
+### 🎨 Visual Experience
+
+#### Synchronized Mode
+- **Real-time highlighting** - Current lyric line gets #303030 background with #F1D4A1 text
+- **Progressive coloring** - Previously sung lines turn #303030 color permanently
+- **Smooth transitions** - Lines scale slightly when active for visual emphasis
+- **Auto-scroll** - Display smoothly centers the active line
+
+#### Static Mode
+- **Full lyrics display** - Complete lyrics shown in scrollable container
+- **Click navigation** - Click any line to jump to that timestamp
+- **Clean typography** - Professional formatting with proper line spacing
+
+#### Hidden Mode
+- **Clean interface** - Focus purely on the music without visual distractions
+- **Toggle availability** - Easy access to lyrics when needed
+
+### 🔧 Technical Implementation
+
+#### Smart Format Detection
+```javascript
+// Auto-detection with fallback to manual hints
+function parseLyricsData(rawData, formatHint = 'auto') {
+  let format = formatHint || 'auto';
+  if (format === 'auto') {
+    if (/^\d+\s*[\r\n]+\d{2}:\d{2}:\d{2},\d{3}/.test(rawData)) {
+      format = 'srt';
+    } else if (/\[\d{2}:\d{2}\.\d{2}\]/.test(rawData)) {
+      format = 'lrc';
+    } // ... additional format checks
+  }
+}
+```
+
+#### Real-Time Synchronization
+```javascript
+// Continuous sync with audio playback
+wavesurfer.on('audioprocess', () => {
+  const time = wavesurfer.getCurrentTime();
+  const currentIndex = parsedLyrics.synced.findIndex((lyric, index) => {
+    const nextLyric = parsedLyrics.synced[index + 1];
+    return time >= lyric.time && (!nextLyric || time < nextLyric.time);
+  });
+  setCurrentLyricIndex(currentIndex);
+});
+```
+
+#### Auto-Scroll Implementation
+```javascript
+// Smooth scrolling to keep current line centered
+const targetScrollTop = relativeTop - (containerHeight / 2) + (lineRect.height / 2);
+lyricsContainer.scrollTo({
+  top: Math.max(0, targetScrollTop),
+  behavior: 'smooth'
+});
+```
+
+### 📊 Content Management Integration
+
+Lyrics data is managed through Sanity CMS with flexible input options:
+
+```typescript
+// Sanity schema supports multiple input methods
+lyrics: {
+  lyricsData: text,          // Paste lyrics in any supported format
+  lyricsFile: file,          // Upload .lrc, .srt, .json, or .txt files
+  enableSync: boolean,       // Enable real-time synchronization
+  formatHint: string         // Optional format specification
+}
+```
+
+### 🎭 User Experience Features
+
+- **Instant Loading** - Lyrics parse and display immediately when available
+- **Seamless Mode Switching** - Toggle between modes without interrupting playback
+- **Mobile Optimized** - Responsive design works perfectly on all screen sizes
+- **Performance Efficient** - Minimal impact on audio playback performance
+- **Error Resilient** - Graceful fallbacks when lyrics can't be parsed or synchronized
+
+### 🔄 Workflow Integration
+
+The lyrics system integrates seamlessly with the existing music player:
+
+1. **Content Upload** → Admin uploads lyrics via Sanity CMS (text or file)
+2. **Format Detection** → System automatically detects and parses lyrics format
+3. **Player Integration** → Lyrics become available in music player interface
+4. **Real-Time Sync** → Lyrics highlight synchronously during audio playback
+5. **Progressive Display** → Sung lyrics remain colored, creating visual progress
+
+This creates a complete karaoke-like experience that enhances music listening while maintaining focus on the audio content.
 
 ## 📝 Multi-Format Transcript System
 
@@ -364,6 +505,40 @@ This creates a unified content experience where transcripts enhance both audio-f
    ```
 
 ## 🎼 Content Schema
+
+### Music Post Structure
+```typescript
+{
+  title: string,
+  slug: slug,
+  publishedAt: datetime,
+  excerpt?: string,
+  coverArt?: image,
+  releaseType?: 'single' | 'ep' | 'album' | 'demo',
+  tracks: [{
+    trackNumber: number,
+    trackTitle: string,
+    audioFile: file,
+    duration?: string,
+    lyrics?: {
+      lyricsData?: string,         // Multi-format lyrics content (LRC, SRT, JSON, text)
+      lyricsFile?: file,           // Alternative: upload lyrics file (.lrc, .srt, .json, .txt)
+      enableSync?: boolean,        // Enable real-time sync (default: true)
+      formatHint?: string         // Optional format hint ('auto', 'lrc', 'srt', 'json', 'text')
+    },
+    trackStreamingLinks?: [{
+      platform: 'spotify' | 'apple-music' | 'youtube-music' | 'soundcloud' | 'bandcamp',
+      url: string
+    }]
+  }],
+  streamingLinks?: [{
+    platform: string,
+    url: string
+  }],
+  credits?: string,
+  body?: PortableText              // Article content about the release
+}
+```
 
 ### Podcast Episode Structure
 ```typescript
