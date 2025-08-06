@@ -39,7 +39,17 @@ const musicPost = await client.fetch(`
         }
       },
       duration,
-      lyrics,
+      lyrics{
+        lyricsData,
+        lyricsFile{
+          asset->{
+            _id,
+            url
+          }
+        },
+        enableSync,
+        formatHint
+      },
       trackStreamingLinks
     },
     streamingLinks,
@@ -81,14 +91,17 @@ const pageTitle = musicPost.title;
       {musicPost.tracks && musicPost.tracks.length > 0 && (
         <div class="tracks-section">
           <WaveSurferPlayer 
-            tracks={musicPost.tracks.map((track, index) => ({
-              audioUrl: track.audioFile?.asset?.url,
-              title: track.trackTitle,
-              trackNumber: track.trackNumber || index + 1,
-              lyrics: track.lyrics,
-              syncedLyrics: track.syncedLyrics || null,
-              trackStreamingLinks: track.trackStreamingLinks || []
-            }))}
+            tracks={musicPost.tracks.map((track, index) => {
+              console.log(`Track ${index + 1} data:`, track);
+              console.log(`Track ${index + 1} lyrics:`, track.lyrics);
+              return {
+                audioUrl: track.audioFile?.asset?.url,
+                title: track.trackTitle,
+                trackNumber: track.trackNumber || index + 1,
+                lyricsData: track.lyrics || {},
+                trackStreamingLinks: track.trackStreamingLinks || []
+              };
+            })}
             albumTitle={musicPost.title}
             artist="Acerbic Inq"
             coverArt={musicPost.coverArt ? urlFor(musicPost.coverArt).width(300).height(300).url() : null}

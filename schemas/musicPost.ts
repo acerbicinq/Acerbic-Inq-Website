@@ -124,6 +124,72 @@ export default defineType({
               ],
               description: 'Individual streaming links for this track',
             },
+            {
+              name: 'lyrics',
+              title: 'Track Lyrics',
+              type: 'object',
+              fields: [
+                {
+                  name: 'lyricsData',
+                  title: 'Lyrics Content',
+                  type: 'text',
+                  rows: 15,
+                  description: `Add track lyrics in any of these supported formats:
+
+• Simple Text Format:
+[Verse 1]
+Here we are now, entertain us
+I feel stupid and contagious
+
+• LRC (Synchronized) Format:
+[00:12.34] Here we are now, entertain us
+[00:15.67] I feel stupid and contagious
+
+• JSON Format:
+[{"time": "00:12.34", "text": "Here we are now, entertain us"}]
+
+• SRT-style Format:
+1
+00:00:12,340 --> 00:00:15,670
+Here we are now, entertain us
+
+The system will automatically detect and parse the format.`,
+                },
+                {
+                  name: 'lyricsFile',
+                  title: 'Upload Lyrics File',
+                  type: 'file',
+                  options: {
+                    accept: '.lrc,.txt,.json,.srt'
+                  },
+                  description: 'Alternatively, upload a lyrics file (.lrc, .txt, .json, or .srt)',
+                },
+                {
+                  name: 'enableSync',
+                  title: 'Enable Real-time Sync',
+                  type: 'boolean',
+                  description: 'Enable synchronized lyrics that highlight in real-time with music playback',
+                  initialValue: true,
+                },
+                {
+                  name: 'formatHint',
+                  title: 'Format Hint (Optional)',
+                  type: 'string',
+                  options: {
+                    list: [
+                      {title: 'Auto-detect', value: 'auto'},
+                      {title: 'Simple Text', value: 'text'},
+                      {title: 'LRC (Synchronized)', value: 'lrc'},
+                      {title: 'JSON', value: 'json'},
+                      {title: 'SRT-style', value: 'srt'},
+                    ],
+                  },
+                  initialValue: 'auto',
+                  description: 'Help the parser by specifying the format if auto-detection fails',
+                }
+              ],
+              description: 'Multi-format lyrics support. Add synchronized or static lyrics for this track. The system supports LRC, JSON, SRT, and simple text formats.',
+            },
           ],
           preview: {
             select: {

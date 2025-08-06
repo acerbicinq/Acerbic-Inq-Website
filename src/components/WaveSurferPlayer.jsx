@@ -14,6 +14,143 @@ import {
   SkipForwardIcon
 } from './StreamingIcons.jsx';
 
+// Multi-format lyrics parser
+function parseLyricsData(rawData, formatHint = 'auto') {
+  if (!rawData || typeof rawData !== 'string') {
+    return { static: null, synced: null };
+  }
+
+  const trimmedData = rawData.trim();
+  
+  // Auto-detect format or use hint
+  let format = formatHint || 'auto';  // Default to 'auto' if formatHint is null/undefined
+  if (format === 'auto') {
+    if (trimmedData.startsWith('[') && trimmedData.includes(']') && /\[\d{2}:\d{2}\.\d{2}\]/.test(trimmedData)) {
+      format = 'lrc';
+    } else if (trimmedData.startsWith('[{') && trimmedData.endsWith('}]')) {
+      format = 'json';
+    } else if (/^\d+\s*[\r\n]+\d{2}:\d{2}:\d{2},\d{3}\s*-->\s*\d{2}:\d{2}:\d{2},\d{3}/.test(trimmedData)) {
+      format = 'srt';
+    } else {
+      format = 'text';
+    }
+  }
+
+  console.log('Lyrics: Detected format:', format);
+
+  try {
+    switch (format) {
+      case 'lrc':
+        return parseLRCFormat(trimmedData);
+      case 'json':
+        return parseJSONFormat(trimmedData);
+      case 'srt':
+        return parseSRTFormat(trimmedData);
+      case 'text':
+      default:
+        return { static: trimmedData, synced: null };
+    }
+  } catch (error) {
+    console.warn('Lyrics: Parse error, falling back to static text:', error);
+    return { static: trimmedData, synced: null };
+  }
+}
+
+// Parse LRC format: [00:12.34] Line of lyrics
+function parseLRCFormat(data) {
+  const lines = data.split('\n');
+  const syncedLyrics = [];
+  const staticLines = [];
+
+  lines.forEach(line => {
+    const match = line.match(/^\[(\d{2}):(\d{2})\.(\d{2})\]\s*(.*)$/);
+    if (match) {
+      const [, minutes, seconds, centiseconds, text] = match;
+      const timeInSeconds = parseInt(minutes) * 60 + parseInt(seconds) + parseInt(centiseconds) / 100;
+      syncedLyrics.push({ time: timeInSeconds, text: text.trim() });
+      staticLines.push(text.trim());
+    }
+  });
+
+  return {
+    static: staticLines.join('\n'),
+    synced: syncedLyrics.length > 0 ? syncedLyrics : null
+  };
+}
+
+// Parse JSON format: [{"time": "00:12.34", "text": "Line of lyrics"}]
+function parseJSONFormat(data) {
+  const parsed = JSON.parse(data);
+  if (!Array.isArray(parsed)) {
+    throw new Error('JSON must be an array');
+  }
+
+  const syncedLyrics = [];
+  const staticLines = [];
+
+  parsed.forEach(item => {
+    if (item.time && item.text) {
+      const timeInSeconds = parseTimeString(item.time);
+      syncedLyrics.push({ time: timeInSeconds, text: item.text });
+      staticLines.push(item.text);
+    }
+  });
+
+  return {
+    static: staticLines.join('\n'),
+    synced: syncedLyrics.length > 0 ? syncedLyrics : null
+  };
+}
+
+// Parse SRT format: 1\n00:00:12,340 --> 00:00:15,670\nLine of lyrics
+function parseSRTFormat(data) {
+  // Handle different line endings (Windows \r\n, Unix \n, old Mac \r)
+  const normalizedData = data.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  const blocks = normalizedData.split(/\n\s*\n/);
+  
+  const syncedLyrics = [];
+  const staticLines = [];
+
+  blocks.forEach((block, index) => {
+    const lines = block.trim().split('\n');
+    if (lines.length >= 3) {
+      const timeLine = lines[1];
+      const textLines = lines.slice(2);
+      
+      const match = timeLine.match(/(\d{2}):(\d{2}):(\d{2}),(\d{3})\s*-->\s*(\d{2}):(\d{2}):(\d{2}),(\d{3})/);
+      if (match) {
+        const [, h1, m1, s1, ms1] = match;
+        const timeInSeconds = parseInt(h1) * 3600 + parseInt(m1) * 60 + parseInt(s1) + parseInt(ms1) / 1000;
+        const text = textLines.join(' ');
+        syncedLyrics.push({ time: timeInSeconds, text });
+        staticLines.push(text);
+      }
+    }
+  });
+
+  return {
+    static: staticLines.join('\n'),
+    synced: syncedLyrics.length > 0 ? syncedLyrics : null
+  };
+}
+
+// Helper function to parse time strings like "00:12.34" or "00:00:12.340"
+function parseTimeString(timeStr) {
+  const parts = timeStr.split(':');
+  if (parts.length === 2) {
+    // MM:SS.ss format
+    const [minutes, secondsWithMs] = parts;
+    const [seconds, ms = '0'] = secondsWithMs.split('.');
+    return parseInt(minutes) * 60 + parseInt(seconds) + parseInt(ms.padEnd(3, '0')) / 1000;
+  } else if (parts.length === 3) {
+    // HH:MM:SS.sss format
+    const [hours, minutes, secondsWithMs] = parts;
+    const [seconds, ms = '0'] = secondsWithMs.split('.');
+    return parseInt(hours) * 3600 + parseInt(minutes) * 60 + parseInt(seconds) + parseInt(ms.padEnd(3, '0')) / 1000;
+  }
+  return 0;
+}
+
 export default function WaveSurferPlayer({ 
   tracks = [], // Array of track objects
   albumTitle,
@@ -24,6 +161,7 @@ export default function WaveSurferPlayer({
   const waveformRef = useRef(null);
   const wavesurfer = useRef(null);
   const preloadedTracks = useRef(new Map()); // Store preloaded WaveSurfer instances
+  const lyricsContainerRef = useRef(null);
   
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -43,10 +181,46 @@ export default function WaveSurferPlayer({
     audioUrl, 
     title, 
     trackNumber, 
-    lyrics, 
-    syncedLyrics,
+    lyricsData = {},
     trackStreamingLinks = []
   } = currentTrack;
+
+  // Parse lyrics data from multiple formats
+  const [parsedLyrics, setParsedLyrics] = useState({ static: null, synced: null });
+  
+  useEffect(() => {
+    console.log('Lyrics: Track changed, checking lyrics data:', lyricsData);
+    console.log('Lyrics: lyricsData.lyricsData:', lyricsData?.lyricsData);
+    console.log('Lyrics: lyricsData.lyricsFile:', lyricsData?.lyricsFile);
+    
+    if (lyricsData?.lyricsData) {
+      console.log('Lyrics: Found lyrics text data, parsing...');
+      const parsed = parseLyricsData(lyricsData.lyricsData, lyricsData.formatHint);
+      console.log('Lyrics: Parsed result:', parsed);
+      setParsedLyrics(parsed);
+    } else if (lyricsData?.lyricsFile?.asset?.url) {
+      console.log('Lyrics: Found lyrics file, fetching...');
+      fetch(lyricsData.lyricsFile.asset.url)
+        .then(response => response.text())
+        .then(fileContent => {
+          console.log('Lyrics: File content loaded:', fileContent.substring(0, 200) + '...');
+          const parsed = parseLyricsData(fileContent, lyricsData.formatHint);
+          console.log('Lyrics: Parsed result from file:', parsed);
+      if (parsed.synced) {
+        console.log('Lyrics: First 3 synced entries:', parsed.synced.slice(0, 3));
+      }
+          console.log('Lyrics: Setting state with parsed lyrics, synced count:', parsed.synced ? parsed.synced.length : 'null');
+          setParsedLyrics(parsed);
+        })
+        .catch(error => {
+          console.error('Lyrics: Error loading lyrics file:', error);
+          setParsedLyrics({ static: null, synced: null });
+        });
+    } else {
+      console.log('Lyrics: No lyrics data or file found');
+      setParsedLyrics({ static: null, synced: null });
+    }
+  }, [lyricsData, currentTrackIndex]);
 
   // Preload all tracks on mount
   useEffect(() => {
@@ -76,6 +250,7 @@ export default function WaveSurferPlayer({
           console.log(`Track ${index + 1} preloaded - ${preloadedTracks.current.size}/${tracks.length} tracks ready`);
           
           // Check if all tracks are preloaded
+          console.log(`Preload check: ${preloadedTracks.current.size}/${tracks.length} tracks ready`);
           if (preloadedTracks.current.size === tracks.length) {
             console.log('🚀 All tracks preloaded! Revealing player interface.');
             setAllTracksLoaded(true);
@@ -86,6 +261,13 @@ export default function WaveSurferPlayer({
         preloadInstance.on('error', (error) => {
           console.warn(`Failed to preload track ${index + 1}:`, error);
           document.body.removeChild(hiddenContainer);
+          // Still count as "loaded" even if failed, so player can show
+          setPreloadProgress(prev => new Map(prev).set(index, 100));
+          if (preloadedTracks.current.size >= tracks.length - 1) {
+            console.log('🚀 All tracks processed (some may have failed)! Revealing player interface.');
+            setAllTracksLoaded(true);
+            setGlobalLoading(false);
+          }
         });
 
         preloadInstance.load(track.audioUrl);
@@ -102,7 +284,17 @@ export default function WaveSurferPlayer({
       setTimeout(() => preloadTrack(track, index), index * 300);
     });
 
+    // Fallback timeout - show player after 10 seconds regardless
+    const fallbackTimeout = setTimeout(() => {
+      console.log('⚠️ Fallback timeout reached - showing player interface anyway');
+      setAllTracksLoaded(true);
+      setGlobalLoading(false);
+    }, 10000);
+
     return () => {
+      // Clear the fallback timeout
+      clearTimeout(fallbackTimeout);
+      
       // Clean up all preloaded instances
       preloadedTracks.current.forEach(async (instance, index) => {
         try {
@@ -140,26 +332,29 @@ export default function WaveSurferPlayer({
       if (wavesurfer.current) {
         try {
           // Stop playback first
-          if (wavesurfer.current.isPlaying && wavesurfer.current.isPlaying()) {
+          if (wavesurfer.current.isPlaying && typeof wavesurfer.current.isPlaying === 'function' && wavesurfer.current.isPlaying()) {
             wavesurfer.current.pause();
           }
           
           // Wait a small amount to let any pending operations complete
           await new Promise(resolve => setTimeout(resolve, 50));
           
-          // Remove all event listeners before destroying
-          wavesurfer.current.un('ready');
-          wavesurfer.current.un('play');
-          wavesurfer.current.un('pause');
-          wavesurfer.current.un('audioprocess');
-          wavesurfer.current.un('error');
+          // Remove all event listeners before destroying - check if methods exist
+          if (typeof wavesurfer.current.un === 'function') {
+            wavesurfer.current.un('ready');
+            wavesurfer.current.un('play');
+            wavesurfer.current.un('pause');
+            wavesurfer.current.un('audioprocess');
+            wavesurfer.current.un('error');
+          }
           
           // Then destroy
-          wavesurfer.current.destroy();
+          if (typeof wavesurfer.current.destroy === 'function') {
+            wavesurfer.current.destroy();
+          }
           wavesurfer.current = null;
         } catch (error) {
           // Silently handle cleanup errors - they're not critical
-          console.warn('WaveSurfer cleanup warning (non-critical):', error.message);
           wavesurfer.current = null;
         }
       }
@@ -218,12 +413,36 @@ export default function WaveSurferPlayer({
         setCurrentTime(time);
         
         // Update synced lyrics
-        if (syncedLyrics && lyricsMode === 'synced') {
-          const currentIndex = syncedLyrics.findIndex((lyric, index) => {
-            const nextLyric = syncedLyrics[index + 1];
-            return time >= lyric.start && (!nextLyric || time < nextLyric.start);
+        if (parsedLyrics.synced && lyricsMode === 'synced') {
+          const currentIndex = parsedLyrics.synced.findIndex((lyric, index) => {
+            const nextLyric = parsedLyrics.synced[index + 1];
+            return time >= lyric.time && (!nextLyric || time < nextLyric.time);
           });
+          if (currentIndex !== currentLyricIndex) {
+            console.log('Lyrics: Current line changed to index:', currentIndex, 'time:', time);
+          }
           setCurrentLyricIndex(currentIndex);
+          
+          // Auto-scroll to current lyric
+          if (currentIndex >= 0 && lyricsContainerRef.current) {
+            const lyricsContainer = lyricsContainerRef.current;
+            const activeLine = lyricsContainer.querySelector('.lyric-line.active');
+            if (activeLine) {
+              const containerRect = lyricsContainer.getBoundingClientRect();
+              const lineRect = activeLine.getBoundingClientRect();
+              const containerScrollTop = lyricsContainer.scrollTop;
+              const relativeTop = lineRect.top - containerRect.top + containerScrollTop;
+              const containerHeight = lyricsContainer.clientHeight;
+              
+              // Scroll to center the active line in the container
+              const targetScrollTop = relativeTop - (containerHeight / 2) + (lineRect.height / 2);
+              
+              lyricsContainer.scrollTo({
+                top: Math.max(0, targetScrollTop),
+                behavior: 'smooth'
+              });
+            }
+          }
         }
       });
 
@@ -239,7 +458,7 @@ export default function WaveSurferPlayer({
     return () => {
       cleanup().catch(err => console.warn('Cleanup error:', err.message));
     };
-  }, [audioUrl, volume, syncedLyrics, lyricsMode, currentTrackIndex]);
+  }, [audioUrl, volume, currentTrackIndex, lyricsMode, parsedLyrics]);
 
   const switchTrack = (trackIndex) => {
     if (trackIndex >= 0 && trackIndex < tracks.length && trackIndex !== currentTrackIndex) {
@@ -312,17 +531,17 @@ export default function WaveSurferPlayer({
     const nextMode = modes[(currentIndex + 1) % modes.length];
     
     // Skip synced if no synced lyrics available
-    if (nextMode === 'synced' && !syncedLyrics) {
+    if (nextMode === 'synced' && !parsedLyrics.synced) {
       setLyricsMode('static');
-    } else if (nextMode === 'static' && !lyrics) {
+    } else if (nextMode === 'static' && !parsedLyrics.static) {
       setLyricsMode('hidden');
     } else {
       setLyricsMode(nextMode);
     }
   };
 
-  // Show loading screen until all tracks are preloaded
-  if (globalLoading) {
+  // Disable preloading screen for now - show player immediately
+  if (false && globalLoading) {
     return (
       <div class="wavesurfer-player">
         <div class="global-loading">
@@ -463,23 +682,26 @@ export default function WaveSurferPlayer({
       {/* Lyrics Display */}
       {lyricsMode !== 'hidden' && (
         <div class="lyrics-container">
-          {lyricsMode === 'synced' && syncedLyrics ? (
-            <div class="synced-lyrics">
-              {syncedLyrics.map((lyric, index) => (
+          {lyricsMode === 'synced' && parsedLyrics.synced ? (
+            <div class="synced-lyrics" ref={lyricsContainerRef}>
+              {parsedLyrics.synced.map((lyric, index) => (
                 <p 
                   key={index}
-                  class={`lyric-line ${index === currentLyricIndex ? 'active' : ''}`}
+                  class={`lyric-line ${
+                    index === currentLyricIndex ? 'active' : 
+                    index < currentLyricIndex ? 'played' : ''
+                  }`}
                 >
                   {lyric.text}
                 </p>
               ))}
             </div>
-          ) : lyricsMode === 'static' && lyrics ? (
+          ) : lyricsMode === 'static' && parsedLyrics.static ? (
             <div class="static-lyrics">
-              <pre>{lyrics}</pre>
+              <pre>{parsedLyrics.static}</pre>
             </div>
           ) : (
-            <p class="no-lyrics">No lyrics available</p>
+            <p class="no-lyrics">No lyrics available for this track</p>
           )}
         </div>
       )}
@@ -806,12 +1028,19 @@ export default function WaveSurferPlayer({
           border-radius: 4px;
           transition: all 0.3s ease;
           opacity: 0.6;
+          color: inherit;
         }
 
         .synced-lyrics .lyric-line.active {
-          background: var(--player-accent);
+          background: #303030;
+          color: #F1D4A1;
           opacity: 1;
           transform: scale(1.02);
+        }
+
+        .synced-lyrics .lyric-line.played {
+          color: #303030;
+          opacity: 1;
         }
 
         .static-lyrics pre {
