@@ -260,11 +260,21 @@ export default function WaveSurferPlayer({
 
         preloadInstance.on('error', (error) => {
           console.warn(`Failed to preload track ${index + 1}:`, error);
-          document.body.removeChild(hiddenContainer);
-          // Still count as "loaded" even if failed, so player can show
+          try {
+            if (document.body.contains(hiddenContainer)) {
+              document.body.removeChild(hiddenContainer);
+            }
+          } catch (cleanupError) {
+            console.warn('Container cleanup failed (non-critical):', cleanupError.message);
+          }
+          
+          // Count failed preloads as "processed" so interface still shows
           setPreloadProgress(prev => new Map(prev).set(index, 100));
-          if (preloadedTracks.current.size >= tracks.length - 1) {
-            console.log('🚀 All tracks processed (some may have failed)! Revealing player interface.');
+          
+          // Check if we should show interface anyway
+          const processedCount = Array.from(preloadProgress.values()).filter(progress => progress === 100).length + 1;
+          if (processedCount >= tracks.length) {
+            console.log('🚀 All tracks processed (some may have failed due to network/Sanity limits)! Revealing player interface.');
             setAllTracksLoaded(true);
             setGlobalLoading(false);
           }
@@ -284,12 +294,12 @@ export default function WaveSurferPlayer({
       setTimeout(() => preloadTrack(track, index), index * 300);
     });
 
-    // Fallback timeout - show player after 10 seconds regardless
+    // Faster fallback timeout for production issues (Sanity free tier limits)
     const fallbackTimeout = setTimeout(() => {
-      console.log('⚠️ Fallback timeout reached - showing player interface anyway');
+      console.log('⚠️ Fallback timeout reached (possible Sanity free tier limits) - showing player interface anyway');
       setAllTracksLoaded(true);
       setGlobalLoading(false);
-    }, 10000);
+    }, 5000);
 
     return () => {
       // Clear the fallback timeout

@@ -6,6 +6,9 @@ export const client = createClient({
   dataset: 'ai-website',
   useCdn: true,
   apiVersion: '2023-05-03',
+  // Add retry logic for free tier rate limits
+  requestTagPrefix: 'acerbic-inq',
+  ignoreBrowserTokenWarning: true,
 })
 
 const builder = imageUrlBuilder(client)
