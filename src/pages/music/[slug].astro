@@ -67,26 +67,6 @@ const pageTitle = musicPost.title;
 
 <BaseLayout pageTitle={pageTitle}>
   <article class="music-post-detail">
-    <header class="post-header">
-      {musicPost.coverArt && (
-        <img 
-          src={urlFor(musicPost.coverArt).width(600).height(600).url()} 
-          alt={`Cover art for ${musicPost.title}`}
-          class="cover-art-large"
-        />
-      )}
-      <div class="post-meta">
-        <h1>{musicPost.title}</h1>
-        {musicPost.releaseType && (
-          <span class="release-type">{musicPost.releaseType.toUpperCase()}</span>
-        )}
-        {musicPost.excerpt && <p class="excerpt">{musicPost.excerpt}</p>}
-        <time datetime={musicPost.publishedAt}>
-          {new Date(musicPost.publishedAt).toLocaleDateString()}
-        </time>
-      </div>
-    </header>
-
     <div class="post-content">
       {musicPost.tracks && musicPost.tracks.length > 0 && (
         <div class="tracks-section">
@@ -157,47 +137,6 @@ const pageTitle = musicPost.title;
     box-shadow: 0 8px 32px rgba(0,0,0,0.1);
   }
   
-  .post-header {
-    display: grid;
-    grid-template-columns: 350px 1fr;
-    gap: 3rem;
-    margin-bottom: 3rem;
-    padding: 2rem;
-    background: rgba(255, 255, 255, 0.9);
-    border-radius: 16px;
-  }
-  
-  .cover-art-large {
-    width: 100%;
-    height: 300px;
-    object-fit: cover;
-    border-radius: 8px;
-  }
-  
-  .post-meta h1 {
-    margin: 0 0 1rem 0;
-    font-size: 2rem;
-  }
-  
-  .release-type {
-    background: var(--color-plum);
-    color: white;
-    padding: 0.5rem 1rem;
-    border-radius: 20px;
-    font-size: 0.8rem;
-    font-weight: bold;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin: 1rem 0;
-    display: inline-block;
-  }
-  
-  .excerpt {
-    color: #666;
-    margin: 1rem 0;
-    line-height: 1.5;
-    font-size: 1.1rem;
-  }
   
   .post-content {
     margin-bottom: 2rem;
@@ -319,14 +258,8 @@ const pageTitle = musicPost.title;
   }
   
   @media (max-width: 768px) {
-    .post-header {
-      grid-template-columns: 1fr;
-      text-align: center;
-    }
-    
-    .cover-art-large {
-      max-width: 300px;
-      margin: 0 auto;
+    .music-post-detail {
+      padding: 1rem;
     }
   }
 </style>

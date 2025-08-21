@@ -433,25 +433,27 @@ export default function WaveSurferPlayer({
           }
           setCurrentLyricIndex(currentIndex);
           
-          // Auto-scroll to current lyric
+          // Auto-scroll within the lyrics container only (don't scroll the page)
           if (currentIndex >= 0 && lyricsContainerRef.current) {
-            const lyricsContainer = lyricsContainerRef.current;
-            const activeLine = lyricsContainer.querySelector('.lyric-line.active');
-            if (activeLine) {
-              const containerRect = lyricsContainer.getBoundingClientRect();
-              const lineRect = activeLine.getBoundingClientRect();
-              const containerScrollTop = lyricsContainer.scrollTop;
-              const relativeTop = lineRect.top - containerRect.top + containerScrollTop;
-              const containerHeight = lyricsContainer.clientHeight;
-              
-              // Scroll to center the active line in the container
-              const targetScrollTop = relativeTop - (containerHeight / 2) + (lineRect.height / 2);
-              
-              lyricsContainer.scrollTo({
-                top: Math.max(0, targetScrollTop),
-                behavior: 'smooth'
-              });
-            }
+            setTimeout(() => {
+              const lyricsContainer = lyricsContainerRef.current;
+              const activeLine = lyricsContainer?.querySelector('.lyric-line.active');
+              if (activeLine && lyricsContainer) {
+                const containerRect = lyricsContainer.getBoundingClientRect();
+                const lineRect = activeLine.getBoundingClientRect();
+                const containerScrollTop = lyricsContainer.scrollTop;
+                const relativeTop = lineRect.top - containerRect.top + containerScrollTop;
+                const containerHeight = lyricsContainer.clientHeight;
+                
+                // Scroll within the container to center the active line
+                const targetScrollTop = relativeTop - (containerHeight / 2) + (lineRect.height / 2);
+                
+                lyricsContainer.scrollTo({
+                  top: Math.max(0, targetScrollTop),
+                  behavior: 'smooth'
+                });
+              }
+            }, 50);
           }
         }
       });
