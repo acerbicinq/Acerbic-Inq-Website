@@ -1,0 +1,482 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { client, urlFor } from "../../lib/sanity";
+import PortableText from "../../components/PortableText.jsx";
+
+export async function getStaticPaths() {
+  const bookPosts = await client.fetch(`
+    *[_type == "bookContent"] {
+      slug,
+      title
+    }
+  `);
+  
+  return bookPosts.map((post) => ({
+    params: { slug: post.slug.current },
+  }));
+}
+
+const { slug } = Astro.params;
+
+const bookPost = await client.fetch(`
+  *[_type == "bookContent" && slug.current == $slug][0] {
+    _id,
+    title,
+    slug,
+    publishedAt,
+    description,
+    coverImage,
+    contentType,
+    status,
+    genre,
+    readingSettings,
+    accessibilitySettings,
+    chapters[]{
+      chapterTitle,
+      chapterNumber,
+      chapterSlug,
+      summary,
+      content,
+      wordCount,
+      publishedAt
+    },
+    totalWordCount,
+    dedication,
+    acknowledgments,
+    authorNotes,
+    purchaseLinks,
+    tags,
+    series,
+    isbn
+  }
+`, { slug });
+
+if (!bookPost) {
+  return Astro.redirect("/404");
+}
+
+const pageTitle = bookPost.title;
+
+// Determine the back link based on content type
+let backLink = "/writing";
+let backText = "← Back to Writing";
+if (bookPost.contentType === "book") {
+  backLink = "/novels";
+  backText = "← Back to Novels";
+} else if (bookPost.contentType === "short-story") {
+  backLink = "/shorts";
+  backText = "← Back to Short Stories";
+} else if (bookPost.contentType === "magazine") {
+  backLink = "/magazine";  
+  backText = "← Back to Magazine";
+}
+---
+
+<BaseLayout pageTitle={pageTitle}>
+  <article class="book-post-detail">
+    <div class="book-header">
+      {bookPost.coverImage && (
+        <img 
+          src={urlFor(bookPost.coverImage).width(400).height(600).url()} 
+          alt={bookPost.coverImage.alt || `Cover for ${bookPost.title}`}
+          class="cover-image"
+        />
+      )}
+      
+      <div class="book-info">
+        <h1>{bookPost.title}</h1>
+        
+        {bookPost.series?.seriesTitle && (
+          <div class="series-info">
+            <p class="series-title">{bookPost.series.seriesTitle}</p>
+            {bookPost.series.bookNumber && (
+              <p class="book-number">Book {bookPost.series.bookNumber} {bookPost.series.totalBooks ? `of ${bookPost.series.totalBooks}` : ''}</p>
+            )}
+          </div>
+        )}
+        
+        {bookPost.status && (
+          <span class="status">{bookPost.status.replace('-', ' ').toUpperCase()}</span>
+        )}
+        
+        {bookPost.description && (
+          <p class="description">{bookPost.description}</p>
+        )}
+        
+        <div class="book-metadata">
+          {bookPost.totalWordCount && (
+            <p class="word-count">~{bookPost.totalWordCount.toLocaleString()} words</p>
+          )}
+          
+          {bookPost.isbn && (
+            <p class="isbn">ISBN: {bookPost.isbn}</p>
+          )}
+          
+          {bookPost.publishedAt && (
+            <p class="publish-date">
+              Published: {new Date(bookPost.publishedAt).toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+              })}
+            </p>
+          )}
+        </div>
+        
+        {bookPost.genre && bookPost.genre.length > 0 && (
+          <div class="genre-tags">
+            {bookPost.genre.map((g) => (
+              <span class="genre-tag">{g}</span>
+            ))}
+          </div>
+        )}
+        
+        {bookPost.tags && bookPost.tags.length > 0 && (
+          <div class="tags">
+            {bookPost.tags.map((tag) => (
+              <span class="tag">{tag}</span>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+    
+    {bookPost.purchaseLinks && bookPost.purchaseLinks.length > 0 && (
+      <div class="purchase-section">
+        <h2>Get This {bookPost.contentType === 'book' ? 'Book' : bookPost.contentType === 'short-story' ? 'Story' : 'Content'}</h2>
+        <div class="purchase-links">
+          {bookPost.purchaseLinks.map((link) => (
+            <a href={link.url} target="_blank" rel="noopener noreferrer" class="purchase-link">
+              {link.platform.charAt(0).toUpperCase() + link.platform.slice(1).replace('-', ' ')}
+              {link.price && <span class="price">{link.price}</span>}
+            </a>
+          ))}
+        </div>
+      </div>
+    )}
+    
+    {bookPost.dedication && (
+      <div class="dedication-section">
+        <h2>Dedication</h2>
+        <p class="dedication">{bookPost.dedication}</p>
+      </div>
+    )}
+    
+    {bookPost.chapters && bookPost.chapters.length > 0 && bookPost.readingSettings?.allowFullRead && (
+      <div class="chapters-section">
+        <h2>Chapters</h2>
+        <div class="chapters-list">
+          {bookPost.chapters.map((chapter) => (
+            <div class="chapter-item">
+              <h3>Chapter {chapter.chapterNumber}: {chapter.chapterTitle}</h3>
+              {chapter.summary && (
+                <p class="chapter-summary">{chapter.summary}</p>
+              )}
+              {chapter.wordCount && (
+                <p class="chapter-word-count">~{chapter.wordCount.toLocaleString()} words</p>
+              )}
+              {chapter.content && (
+                <div class="chapter-content">
+                  <PortableText value={chapter.content} client:load />
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+    
+    {bookPost.chapters && bookPost.chapters.length > 0 && !bookPost.readingSettings?.allowFullRead && (
+      <div class="chapters-preview">
+        <h2>Table of Contents</h2>
+        <div class="chapters-list-preview">
+          {bookPost.chapters.map((chapter) => (
+            <div class="chapter-preview">
+              <h3>Chapter {chapter.chapterNumber}: {chapter.chapterTitle}</h3>
+              {chapter.summary && (
+                <p class="chapter-summary">{chapter.summary}</p>
+              )}
+              {chapter.wordCount && (
+                <p class="chapter-word-count">~{chapter.wordCount.toLocaleString()} words</p>
+              )}
+            </div>
+          ))}
+        </div>
+        <p class="preview-note">Full content available for purchase.</p>
+      </div>
+    )}
+    
+    {bookPost.authorNotes && (
+      <div class="author-notes-section">
+        <h2>Author's Notes</h2>
+        <div class="author-notes">
+          <PortableText value={bookPost.authorNotes} client:load />
+        </div>
+      </div>
+    )}
+    
+    {bookPost.acknowledgments && (
+      <div class="acknowledgments-section">
+        <h2>Acknowledgments</h2>
+        <div class="acknowledgments">
+          <PortableText value={bookPost.acknowledgments} client:load />
+        </div>
+      </div>
+    )}
+
+    <nav class="post-navigation">
+      <a href={backLink} class="back-link">{backText}</a>
+    </nav>
+  </article>
+</BaseLayout>
+
+<style>
+  .book-post-detail {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+    background: linear-gradient(135deg, var(--color-blush), var(--color-sage));
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+  }
+  
+  .book-header {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 2rem;
+    margin-bottom: 2rem;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 2rem;
+    border-radius: 12px;
+  }
+  
+  .cover-image {
+    width: 250px;
+    height: auto;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  }
+  
+  .book-info h1 {
+    margin: 0 0 1rem 0;
+    color: var(--color-charcoal);
+  }
+  
+  .series-info {
+    margin-bottom: 1rem;
+  }
+  
+  .series-title {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: var(--color-plum);
+    margin: 0;
+  }
+  
+  .book-number {
+    font-size: 0.9rem;
+    color: var(--color-teal);
+    margin: 0.2rem 0 0 0;
+  }
+  
+  .status {
+    background: var(--color-charcoal);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: inline-block;
+    margin-bottom: 1rem;
+  }
+  
+  .description {
+    color: #666;
+    line-height: 1.6;
+    font-size: 1.1rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .book-metadata {
+    margin-bottom: 1rem;
+  }
+  
+  .book-metadata p {
+    margin: 0.3rem 0;
+    color: #888;
+    font-size: 0.9rem;
+  }
+  
+  .genre-tags, .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  
+  .genre-tag {
+    background: #f0f0f0;
+    padding: 0.3rem 0.6rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    color: #666;
+  }
+  
+  .tag {
+    background: var(--color-plum);
+    color: white;
+    padding: 0.3rem 0.6rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 500;
+  }
+  
+  .purchase-section,
+  .dedication-section,
+  .chapters-section,
+  .chapters-preview,
+  .author-notes-section,
+  .acknowledgments-section {
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 12px;
+  }
+  
+  .purchase-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+  
+  .purchase-link {
+    background: var(--color-teal);
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 120px;
+  }
+  
+  .purchase-link:hover {
+    background: var(--color-charcoal);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  }
+  
+  .price {
+    font-size: 0.9rem;
+    margin-top: 0.2rem;
+    opacity: 0.9;
+  }
+  
+  .dedication {
+    font-style: italic;
+    color: #666;
+    text-align: center;
+    font-size: 1.1rem;
+    line-height: 1.6;
+  }
+  
+  .chapters-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+  
+  .chapter-item {
+    border: 1px solid #e1e1e1;
+    border-radius: 8px;
+    padding: 1.5rem;
+    background: white;
+  }
+  
+  .chapter-item h3 {
+    color: var(--color-teal);
+    margin: 0 0 1rem 0;
+  }
+  
+  .chapter-summary {
+    color: #666;
+    font-style: italic;
+    margin-bottom: 0.5rem;
+  }
+  
+  .chapter-word-count {
+    color: #888;
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+  }
+  
+  .chapter-content {
+    line-height: 1.8;
+    font-family: 'Georgia', serif;
+  }
+  
+  .chapters-list-preview {
+    display: grid;
+    gap: 1rem;
+  }
+  
+  .chapter-preview {
+    padding: 1rem;
+    border: 1px solid #e1e1e1;
+    border-radius: 6px;
+    background: #fafafa;
+  }
+  
+  .chapter-preview h3 {
+    color: var(--color-teal);
+    margin: 0 0 0.5rem 0;
+    font-size: 1rem;
+  }
+  
+  .preview-note {
+    text-align: center;
+    color: #666;
+    font-style: italic;
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: #f9f9f9;
+    border-radius: 6px;
+  }
+  
+  .back-link {
+    display: inline-block;
+    background: #f0f0f0;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    text-decoration: none;
+    color: #333;
+    font-weight: 600;
+    margin-top: 2rem;
+  }
+  
+  .back-link:hover {
+    background: #e0e0e0;
+  }
+  
+  @media (max-width: 768px) {
+    .book-header {
+      grid-template-columns: 1fr;
+      text-align: center;
+    }
+    
+    .cover-image {
+      width: 200px;
+      margin: 0 auto;
+    }
+    
+    .book-post-detail {
+      padding: 1rem;
+    }
+  }
+</style>

@@ -30,7 +30,6 @@ export default defineType({
           {title: 'Book', value: 'book'},
           {title: 'Short Story', value: 'short-story'},
           {title: 'Magazine', value: 'magazine'},
-          {title: 'Article', value: 'article'},
         ],
       },
       validation: (Rule) => Rule.required(),

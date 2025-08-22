@@ -1,0 +1,256 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { client, urlFor } from "../lib/sanity";
+
+const pageTitle = "Novels";
+
+const bookPosts = await client.fetch(`
+  *[_type == "bookContent" && contentType == "book"] | order(publishedAt desc) {
+    _id,
+    title,
+    slug,
+    publishedAt,
+    description,
+    coverImage,
+    status,
+    genre,
+    totalWordCount,
+    readingSettings,
+    purchaseLinks,
+    series
+  }
+`);
+---
+
+<BaseLayout pageTitle={pageTitle}>
+  <div class="books-container">
+    <h1>My Novels</h1>
+    <p>Dive into my collection of full-length novels and immersive storytelling.</p>
+    
+    {bookPosts.length === 0 ? (
+      <p>No novels available yet. Check back soon!</p>
+    ) : (
+      <div class="books-grid">
+        {bookPosts.map((post) => (
+          <article class="book-post">
+            {post.coverImage && (
+              <img 
+                src={urlFor(post.coverImage).width(400).height(600).url()} 
+                alt={post.coverImage.alt || `Cover for ${post.title}`}
+                class="cover-image"
+              />
+            )}
+            <div class="post-content">
+              <h2>{post.title}</h2>
+              
+              {post.series?.seriesTitle && (
+                <div class="series-info">
+                  <span class="series-title">{post.series.seriesTitle}</span>
+                  {post.series.bookNumber && (
+                    <span class="book-number">Book {post.series.bookNumber}</span>
+                  )}
+                </div>
+              )}
+              
+              {post.status && (
+                <span class="status">{post.status.replace('-', ' ').toUpperCase()}</span>
+              )}
+              
+              {post.genre && post.genre.length > 0 && (
+                <div class="genre-tags">
+                  {post.genre.map((g) => (
+                    <span class="genre-tag">{g}</span>
+                  ))}
+                </div>
+              )}
+              
+              {post.description && <p class="description">{post.description}</p>}
+              
+              {post.totalWordCount && (
+                <p class="word-count">~{post.totalWordCount.toLocaleString()} words</p>
+              )}
+              
+              {post.purchaseLinks && post.purchaseLinks.length > 0 && (
+                <div class="purchase-links">
+                  <h3>Available on:</h3>
+                  <ul>
+                    {post.purchaseLinks.map((link) => (
+                      <li>
+                        <a href={link.url} target="_blank" rel="noopener noreferrer">
+                          {link.platform.charAt(0).toUpperCase() + link.platform.slice(1).replace('-', ' ')}
+                          {link.price && <span class="price">({link.price})</span>}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              
+              <a href={`/books/${post.slug.current}`} class="read-more">
+                {post.readingSettings?.allowFullRead ? 'Read Now' : 'Learn More'}
+              </a>
+            </div>
+          </article>
+        ))}
+      </div>
+    )}
+  </div>
+</BaseLayout>
+
+<style>
+  .books-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem;
+  }
+  
+  .books-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 2.5rem;
+    margin-top: 2rem;
+  }
+  
+  .book-post {
+    border: 1px solid var(--color-sage);
+    border-radius: 12px;
+    overflow: hidden;
+    background: linear-gradient(135deg, var(--color-blush), var(--color-sage));
+    box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .book-post:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.15);
+  }
+  
+  .cover-image {
+    width: 100%;
+    height: 300px;
+    object-fit: cover;
+  }
+  
+  .post-content {
+    padding: 2rem;
+    background: rgba(255, 255, 255, 0.9);
+  }
+  
+  .series-info {
+    margin: 0.5rem 0;
+  }
+  
+  .series-title {
+    background: var(--color-plum);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    margin-right: 0.5rem;
+  }
+  
+  .book-number {
+    background: var(--color-teal);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    font-weight: bold;
+  }
+  
+  .status {
+    background: var(--color-charcoal);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: inline-block;
+    margin: 0.5rem 0;
+  }
+  
+  .genre-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 1rem 0;
+  }
+  
+  .genre-tag {
+    background: #f0f0f0;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    color: #666;
+  }
+  
+  .description {
+    color: #666;
+    margin: 1rem 0;
+    line-height: 1.5;
+  }
+  
+  .word-count {
+    color: #888;
+    font-size: 0.9rem;
+    font-style: italic;
+  }
+  
+  .purchase-links {
+    margin: 1rem 0;
+  }
+  
+  .purchase-links h3 {
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .purchase-links ul {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  
+  .purchase-links li a {
+    background: #f0f0f0;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    text-decoration: none;
+    color: #333;
+    font-size: 0.9rem;
+  }
+  
+  .purchase-links li a:hover {
+    background: #e0e0e0;
+  }
+  
+  .price {
+    font-weight: normal;
+    opacity: 0.7;
+  }
+  
+  .read-more {
+    display: inline-block;
+    background: var(--color-teal);
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 25px;
+    text-decoration: none;
+    margin-top: 1.5rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: all 0.3s ease;
+  }
+  
+  .read-more:hover {
+    background: var(--color-charcoal);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  }
+</style>
