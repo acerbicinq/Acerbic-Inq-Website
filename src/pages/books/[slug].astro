@@ -75,70 +75,7 @@ if (bookPost.contentType === "book") {
 <BaseLayout pageTitle={pageTitle}>
   <article class="book-post-detail">
     <div class="book-header">
-      {bookPost.coverImage && (
-        <img 
-          src={urlFor(bookPost.coverImage).width(400).height(600).url()} 
-          alt={bookPost.coverImage.alt || `Cover for ${bookPost.title}`}
-          class="cover-image"
-        />
-      )}
-      
-      <div class="book-info">
-        <h1>{bookPost.title}</h1>
-        
-        {bookPost.series?.seriesTitle && (
-          <div class="series-info">
-            <p class="series-title">{bookPost.series.seriesTitle}</p>
-            {bookPost.series.bookNumber && (
-              <p class="book-number">Book {bookPost.series.bookNumber} {bookPost.series.totalBooks ? `of ${bookPost.series.totalBooks}` : ''}</p>
-            )}
-          </div>
-        )}
-        
-        {bookPost.status && (
-          <span class="status">{bookPost.status.replace('-', ' ').toUpperCase()}</span>
-        )}
-        
-        {bookPost.description && (
-          <p class="description">{bookPost.description}</p>
-        )}
-        
-        <div class="book-metadata">
-          {bookPost.totalWordCount && (
-            <p class="word-count">~{bookPost.totalWordCount.toLocaleString()} words</p>
-          )}
-          
-          {bookPost.isbn && (
-            <p class="isbn">ISBN: {bookPost.isbn}</p>
-          )}
-          
-          {bookPost.publishedAt && (
-            <p class="publish-date">
-              Published: {new Date(bookPost.publishedAt).toLocaleDateString('en-US', { 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
-              })}
-            </p>
-          )}
-        </div>
-        
-        {bookPost.genre && bookPost.genre.length > 0 && (
-          <div class="genre-tags">
-            {bookPost.genre.map((g) => (
-              <span class="genre-tag">{g}</span>
-            ))}
-          </div>
-        )}
-        
-        {bookPost.tags && bookPost.tags.length > 0 && (
-          <div class="tags">
-            {bookPost.tags.map((tag) => (
-              <span class="tag">{tag}</span>
-            ))}
-          </div>
-        )}
-      </div>
+      <h1>{bookPost.title}</h1>
     </div>
     
     {bookPost.purchaseLinks && bookPost.purchaseLinks.length > 0 && (
@@ -241,24 +178,15 @@ if (bookPost.contentType === "book") {
   }
   
   .book-header {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 2rem;
     margin-bottom: 2rem;
     background: rgba(255, 255, 255, 0.9);
     padding: 2rem;
     border-radius: 12px;
+    text-align: center;
   }
   
-  .cover-image {
-    width: 250px;
-    height: auto;
-    border-radius: 8px;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-  }
-  
-  .book-info h1 {
-    margin: 0 0 1rem 0;
+  .book-header h1 {
+    margin: 0;
     color: var(--color-charcoal);
   }
   
