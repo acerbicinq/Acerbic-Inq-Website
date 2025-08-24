@@ -2,7 +2,7 @@
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { client, urlFor } from "../lib/sanity";
 
-const pageTitle = "Multimedia Articles";
+const pageTitle = "Multimedia Podcast";
 
 const podcastEpisodes = await client.fetch(`
   *[_type == "podcastEpisode"] | order(episodeNumber desc) {
@@ -36,7 +36,6 @@ const podcastEpisodes = await client.fetch(`
 <BaseLayout pageTitle={pageTitle}>
   <div class="podcast-container">
     <header class="podcast-header">
-      <h1>Multimedia Articles</h1>
       <p>Welcome! Thanks for checking out my multimedia articles. It's a podcast, an article, and a radio show all in one! Feel free to choose your level of interaction with this page.</p>
     </header>
     
@@ -97,10 +96,11 @@ const podcastEpisodes = await client.fetch(`
 </BaseLayout>
 
 <style>
+
+
   .podcast-container {
-    max-width: 1200px;
     margin: 0 auto;
-    padding: 2rem;
+
   }
   
   .podcast-header {
@@ -108,21 +108,16 @@ const podcastEpisodes = await client.fetch(`
     margin-bottom: 3rem;
   }
   
-  .podcast-header h1 {
-    font-size: 2.5rem;
-    margin-bottom: 1rem;
-  }
-  
   .podcast-header p {
-    color: #666;
+    color: var(--text-color);
     font-size: 1.1rem;
-    max-width: 600px;
+    
     margin: 0 auto;
   }
   
   .no-episodes {
     text-align: center;
-    color: #666;
+    color: var(--text-color);
     font-size: 1.1rem;
     padding: 3rem;
   }
@@ -134,8 +129,8 @@ const podcastEpisodes = await client.fetch(`
   }
   
   .episode-card {
-    background: white;
-    border-radius: 12px;
+    background: var(--episode-card-bg);
+    border-radius: 3px;
     overflow: hidden;
     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
@@ -161,10 +156,10 @@ const podcastEpisodes = await client.fetch(`
   }
   
   .episode-number {
-    background: #007acc;
-    color: white;
+    background: var(--episode-number-bg);
+    color: var(--button-text-color);
     padding: 0.25rem 0.5rem;
-    border-radius: 4px;
+    border-radius: 2px;
     font-size: 0.8rem;
     font-weight: bold;
   }
@@ -173,10 +168,11 @@ const podcastEpisodes = await client.fetch(`
     margin: 0.5rem 0 0 0;
     font-size: 1.3rem;
     line-height: 1.3;
+    color: var(--text-color);
   }
   
   .episode-description {
-    color: #666;
+    color: var(--text-color);
     line-height: 1.5;
     margin-bottom: 1rem;
   }
@@ -187,7 +183,7 @@ const podcastEpisodes = await client.fetch(`
     gap: 1rem;
     margin-bottom: 1rem;
     font-size: 0.9rem;
-    color: #666;
+    color: var(--text-color);
   }
   
   .episode-tags {
@@ -198,11 +194,11 @@ const podcastEpisodes = await client.fetch(`
   }
   
   .tag {
-    background: #f0f0f0;
+    background: var(--h1-bg-color);
     padding: 0.25rem 0.5rem;
     border-radius: 12px;
     font-size: 0.8rem;
-    color: #666;
+    color: var(--text-color);
   }
   
   .episode-actions {
@@ -212,17 +208,20 @@ const podcastEpisodes = await client.fetch(`
   }
   
   .listen-btn {
-    background: #007acc;
-    color: white;
+    background: var(--episode-number-bg);
+    color: var(--button-text-color);
     padding: 0.5rem 1rem;
-    border-radius: 6px;
+    border-radius: 2px;
+    border-style: solid;
+    border-color: #303030;
     text-decoration: none;
     font-weight: bold;
     transition: background 0.3s ease;
   }
   
   .listen-btn:hover {
-    background: #005a9e;
+    background: var(--button-hover-bg);
+    color: var(--button-hover-text-color);
   }
   
   @media (max-width: 768px) {

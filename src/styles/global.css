@@ -101,6 +101,12 @@ html {
   --player-secondary: var(--color-blush);
   --waveform-progress: var(--color-teal);
   --waveform-bg: var(--color-sage);
+
+    /*For Podcast Page*/
+  --episode-card-bg: #f1d4a1;
+  --episode-number-bg: #685466;
+  --button-text-color: #dddcd1;
+  --button-hover-bg: #dbb982;
 }
 
 /* Define dark theme styles */
@@ -118,9 +124,16 @@ html {
   --player-secondary: #606060;
   --waveform-progress: var(--color-teal);
   --waveform-bg: #505050;
+
+  /*For Podcast Page*/
+  --episode-card-bg: #4a424a;
+  --episode-number-bg: #303030;
+  --button-text-color: #f1d4a1;
+  --button-hover-bg: #685466;
+  --button-hover-text-color: #dddcd1;
 }
 
-/* Stykes foor Footer */
+/* Styles for Footer */
 footer {
   gap: 6rem;
   margin-top: 2rem;
