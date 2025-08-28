@@ -2,7 +2,7 @@
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { client, urlFor } from "../lib/sanity";
 
-const pageTitle = "Multimedia Articles";
+const pageTitle = "Podcast";
 
 const podcastEpisodes = await client.fetch(`
   *[_type == "podcastEpisode"] | order(episodeNumber desc) {
@@ -36,14 +36,13 @@ const podcastEpisodes = await client.fetch(`
 <BaseLayout pageTitle={pageTitle}>
   <div class="podcast-container">
     <header class="podcast-header">
-      <h1>Multimedia Articles</h1>
-      <p>Welcome! Thanks for checking out my multimedia articles. It's a podcast, an article, and a radio show all in one! Feel free to choose your level of interaction with this page.</p>
+      <p>Welcome! Thanks for checking out my multimedia podcast. It's a podcast, an article, and a radio show all in one! Feel free to choose your level of interaction with this page.</p>
     </header>
     
     {podcastEpisodes.length === 0 ? (
       <p class="no-episodes">No episodes yet. Check back soon for the first episode!</p>
     ) : (
-      <div class="episodes-grid">
+      <div class="episodes-grid">   
         {podcastEpisodes.map((episode) => (
           <article class="episode-card">
             {episode.coverArt && (
@@ -97,10 +96,9 @@ const podcastEpisodes = await client.fetch(`
 </BaseLayout>
 
 <style>
+ 
   .podcast-container {
-    max-width: 1200px;
     margin: 0 auto;
-    padding: 2rem;
   }
   
   .podcast-header {
@@ -114,28 +112,27 @@ const podcastEpisodes = await client.fetch(`
   }
   
   .podcast-header p {
-    color: #666;
+    color: var(--text-color);
     font-size: 1.1rem;
-    max-width: 600px;
     margin: 0 auto;
   }
   
   .no-episodes {
     text-align: center;
-    color: #666;
+    color: var(--text-color);
     font-size: 1.1rem;
     padding: 3rem;
   }
   
   .episodes-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(400px, 3fr));
     gap: 2rem;
   }
   
   .episode-card {
-    background: white;
-    border-radius: 12px;
+    background: var(--card-bg-color);
+    border-radius: 4px;
     overflow: hidden;
     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
@@ -150,10 +147,12 @@ const podcastEpisodes = await client.fetch(`
     width: 100%;
     height: 200px;
     object-fit: cover;
+    
   }
   
   .episode-content {
     padding: 1.5rem;
+    
   }
   
   .episode-header {
@@ -161,24 +160,27 @@ const podcastEpisodes = await client.fetch(`
   }
   
   .episode-number {
-    background: #007acc;
+    background: var(--btn-bg-color);
     color: white;
     padding: 0.25rem 0.5rem;
-    border-radius: 4px;
+    border-radius: 2px;
     font-size: 0.8rem;
     font-weight: bold;
+    
   }
   
   .episode-title {
     margin: 0.5rem 0 0 0;
     font-size: 1.3rem;
     line-height: 1.3;
+    
   }
   
   .episode-description {
-    color: #666;
+    color: var(--text-color);
     line-height: 1.5;
     margin-bottom: 1rem;
+    
   }
   
   .episode-meta {
@@ -187,7 +189,7 @@ const podcastEpisodes = await client.fetch(`
     gap: 1rem;
     margin-bottom: 1rem;
     font-size: 0.9rem;
-    color: #666;
+    color: var(--text-color);
   }
   
   .episode-tags {
@@ -200,9 +202,9 @@ const podcastEpisodes = await client.fetch(`
   .tag {
     background: #f0f0f0;
     padding: 0.25rem 0.5rem;
-    border-radius: 12px;
+    border-radius: 2px;
     font-size: 0.8rem;
-    color: #666;
+    color: #var(--text-color);
   }
   
   .episode-actions {
@@ -212,17 +214,20 @@ const podcastEpisodes = await client.fetch(`
   }
   
   .listen-btn {
-    background: #007acc;
+    background: var(--btn-bg-color);
     color: white;
     padding: 0.5rem 1rem;
-    border-radius: 6px;
+    border-radius: 2px;
+    border-style: solid;
+    border-color: var(--text-color);
+    border-width: 1px;
     text-decoration: none;
     font-weight: bold;
     transition: background 0.3s ease;
   }
   
   .listen-btn:hover {
-    background: #005a9e;
+    background: var(--btn-hover-color);
   }
   
   @media (max-width: 768px) {
