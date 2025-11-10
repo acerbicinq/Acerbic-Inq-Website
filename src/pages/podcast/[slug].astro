@@ -81,7 +81,7 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
       <div class="episode-cover-section">
         {episode.coverArt && (
           <img 
-            src={urlFor(episode.coverArt).width(600).height(600).url()} 
+            src={urlFor(episode.coverArt).width(500).height(600).url()} 
             alt={`Cover art for ${episode.title}`}
             class="episode-cover-large"
           />
@@ -124,7 +124,7 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
       
       {episode.videoFile && (
         <div class="video-player-container" data-media="video">
-          <video id="mainVideo" controls preload="metadata">
+          <video id="mainVideo" preload="metadata">
             <source src={episode.videoFile?.asset?.url} type="video/mp4" />
             Your browser does not support the video element.
           </video>
