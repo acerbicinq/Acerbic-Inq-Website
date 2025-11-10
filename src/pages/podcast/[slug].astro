@@ -83,7 +83,7 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
           <img 
             src={urlFor(episode.coverArt).width(500).height(600).url()} 
             alt={`Cover art for ${episode.title}`}
-            class="episode-cover-large"
+            class="episode-cover"
           />
         )}
       
@@ -95,7 +95,7 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
             <source src={episode.audioFile?.asset?.url} type="audio/mpeg" />
             Your browser does not support the audio element.
           </audio>
-                <button id="play-pause">Play</button>
+                <button id="play-pause">►</button>
                 <input type="range" id="seek-bar" min="0" max="100" value="0">
                 <span id="current-time">0:00</span> / <span id="duration">0:00</span>
                 <input type="range" id="volume-control" min="0" max="1" step="0.1" value="1">
@@ -118,22 +118,52 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
       </div>
     </header>
 
-    <!-- Media Player -->
-    <div class="media-player">
-      
+    <!-- Video Player -->
+    <div class="video-player-container">
       
       {episode.videoFile && (
-        <div class="video-player-container" data-media="video">
-          <video id="mainVideo" preload="metadata">
+        <div class="video-player" id="mainVideo" data-media="video">
+          <video id="mainVideo" class="video" preload="metadata">
             <source src={episode.videoFile?.asset?.url} type="video/mp4" />
             Your browser does not support the video element.
           </video>
+          <div class="controls" id="seek-bar">
+            <div class="progress">
+              <div class="progress__filled"></div>
+            </div>
+    <button class="controls_button" id="toggleButton" title="Toggle Play">►</button>
+     <input
+    type="range"
+    name="volume"
+    class="controls__slider"
+    id="volume-control"
+    min="0"
+    max="1"
+    step="0.05"
+    value="1"
+  />
+  <button class="controls__button" data-skip="-10">« 10s</button>
+  <button class="controls__button" data-skip="25">10s »</button>
+  <select class="video-speed">
+                    <option value="0.5">0.5x</option>
+                    <option value="0.75">0.75x</option>
+                    <option value="1" selected>1x</option>
+                    <option value="1.5">1.5x</option>
+                    <option value="2">2x</option>
+                </select>
+          </div>
         </div>
       )}
     </div>
 
+
+
+
+
+
+
 <!-- Media Player Controls -->
-    <div class="player-controls">
+    <div class="media-controls">
       <div class="media-selector">
         <button class="media-btn active" data-type="audio">🎧 Audio</button>
         {episode.videoFile && (
@@ -339,7 +369,7 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
 
     <!-- Navigation -->
     <nav class="episode-navigation">
-      <a href="/podcast" class="back-link">← Back to Podcast Main</a>
+      <a href="/podcast" class="back-link">← Back to Podcast</a>
     </nav>
 
   </div>

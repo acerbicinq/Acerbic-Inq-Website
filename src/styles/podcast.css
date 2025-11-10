@@ -1,11 +1,10 @@
 /* Cover Photo */
-img {
+.episode-cover {
   border: var(--text-color) 1px solid;
 }
 
 
 /* Audio Player Controls */
-
 .audio-player-container {
   display: flex;
   align-items: center;
@@ -45,7 +44,17 @@ img {
 }
 
 /* Video Player Controls */
-
+.video-player-container {
+  width: 100%;
+  max-width: 900px;
+  margin: 1em;
+}
+.progress {
+  display: flex;
+  flex-grow: 1;
+  background-color: var(btn-bg-color);
+  color: #000000;
+}
 
 
 

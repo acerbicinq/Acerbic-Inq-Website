@@ -99,7 +99,7 @@ function formatTimestamp(seconds) {
     }
     
  // Basic Player Controller
-      var audio = document.getElementById('mainAudio');
+    var audio = document.getElementById('mainAudio');
     var playPauseButton = document.getElementById('play-pause');
     var seekBar = document.getElementById('seek-bar');
     var currentTime = document.getElementById('current-time');
@@ -112,10 +112,10 @@ function formatTimestamp(seconds) {
     playPauseButton.addEventListener('click', function() {
         if (audio.paused) {
             audio.play();
-            playPauseButton.textContent = 'Pause';
+            playPauseButton.textContent = '❚❚';
         } else {
             audio.pause();
-            playPauseButton.textContent = 'Play';
+            playPauseButton.textContent = '►';
         }
     });
 
@@ -154,3 +154,70 @@ playbackSpeed.addEventListener('change', function() {
 
 
  });
+
+// Video Player Controls
+const video = document.querySelector(".video");
+const toggleButton = document.querySelector(".controls_button");
+const progress = document.querySelector(".progress");
+const progressBar = document.querySelector(".progress__filled");
+const sliders = document.querySelectorAll(".controls__slider");
+const skipBtns = document.querySelectorAll("[data-skip]");
+
+
+    //Play/Pause Toggle Button
+function togglePlay() {
+  if (video.paused || video.ended) {
+    video.play();
+  } else {
+    video.pause();
+  }
+}
+
+function updateToggleButton() {
+  toggleButton.innerHTML = video.paused ? "►" : "❚❚";
+}
+    //Progress Slider - Nothing Shows...
+function handleProgress() {
+  const progressPercentage = (video.currentTime / video.duration) * 100;
+  progressBar.style.flexBasis = `${progressPercentage}%`;
+}
+
+function scrub(e) {
+  const scrubTime = (e.offsetX / progress.offsetWidth) * video.duration;
+  video.currentTime = scrubTime;
+}
+
+function handleSliderUpdate() {
+  video[this.name] = this.value;
+}
+    //Skip ahead/Back
+function handleSkip() {
+  video.currentTime += +this.dataset.skip;
+}
+
+//Play/Pause Toggle Functionality
+toggleButton.addEventListener("click", togglePlay);
+video.addEventListener("click", togglePlay);
+video.addEventListener("play", updateToggleButton);
+video.addEventListener("pause", updateToggleButton);
+
+video.addEventListener("timeupdate", handleProgress);
+progress.addEventListener("click", scrub);
+    //Volume Functionality
+sliders.forEach((slider) => {
+  slider.addEventListener("change", handleSliderUpdate);
+});
+    //Skip Forward/Backward Functionality
+skipBtns.forEach((btn) => {
+  btn.addEventListener("click", handleSkip);
+});
+
+let mousedown = false;
+progress.addEventListener("mousedown", () => (mousedown = true));
+progress.addEventListener("mousemove", (e) => mousedown && scrub(e));
+progress.addEventListener("mouseup", () => (mousedown = false));
+
+  //Keyboard Spacebar Play/Pause
+document.addEventListener("keydown", (e) => {
+  if (e.code === "Space") togglePlay();
+});
