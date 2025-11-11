@@ -221,3 +221,5 @@ progress.addEventListener("mouseup", () => (mousedown = false));
 document.addEventListener("keydown", (e) => {
   if (e.code === "Space") togglePlay();
 });
+
+  //Fullscreen Toggle

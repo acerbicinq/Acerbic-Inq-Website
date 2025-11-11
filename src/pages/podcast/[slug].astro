@@ -127,32 +127,33 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
             <source src={episode.videoFile?.asset?.url} type="video/mp4" />
             Your browser does not support the video element.
           </video>
-          <div class="controls">
+          
+            <div class="progress_filled"><input type="range" id="video-progress"/></div>
             <div class="progress">
-              <input type="range" class="progress__filled" id="video-progress"></div>
-            </div>
-    <button class="controls_button" id="toggleButton" title="Toggle Play">►</button>
-  <button class="controls__button" data-skip="-10">« 10s</button>
-  <button class="controls__button" data-skip="25">10s »</button>
-  <input
-    type="range"
-    name="volume"
-    class="controls__slider"
-    id="volume-control"
-    min="0"
-    max="1"
-    step="0.05"
-    value="1"
-  />
-  <select class="video-speed">
-                    <option value="0.5">0.5x</option>
-                    <option value="0.75">0.75x</option>
-                    <option value="1" selected>1x</option>
-                    <option value="1.5">1.5x</option>
-                    <option value="2">2x</option>
-                </select>
+            <button class="controls_button" id="toggleButton" title="Toggle Play">►</button>
+              <span id="video-time">0:00</span> / <span id="video-duration">0:00</span>
+              <button class="controls__button" data-skip="-10">« 10s</button>
+              <button class="controls__button" data-skip="25">10s »</button>
+              <input
+                type="range"
+                name="volume"
+                class="controls__slider"
+                id="volume-control"
+                min="0"
+                max="1"
+                step="0.05"
+                value="1"
+              />
+              <select class="video-speed">
+                                <option value="0.5">0.5x</option>
+                                <option value="0.75">0.75x</option>
+                                <option value="1" selected>1x</option>
+                                <option value="1.5">1.5x</option>
+                                <option value="2">2x</option>
+                            </select>
+              <button class="fullscreen-button" id="fullscreenButton" title="Fullscreen" onclick="goFullscreen('player'); return false">⛶</button>
           </div>
-        </div>
+            </div>
       )}
     </div>
 

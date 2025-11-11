@@ -49,14 +49,27 @@
   max-width: 900px;
   margin: 1em;
 }
-.progress_filled {
+.progress {
   display: flex;
   flex-grow: 1;
-  background-color: #fff;
-  color: #000000;
+  align-items: center;
+  max-width: 480px;
+  border: #000000 1px solid;
+  padding: 15px;
+  gap: 10px;
 }
-
-
+.progress_filled {
+  display: block;
+  width: 480px;
+}
+#toggleButton {
+    background-color: var(--text-color);
+    color: var(--background-color) ;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 2px;
+    cursor: pointer;
+}
 
 /*Trancript Controls Styling*/
 .transcript-toggle-btn {
@@ -246,9 +259,16 @@ input[type=range]#volume-control::-moz-range-track {
   border-radius: 5px;
   border: 0.2px solid #010101;
 }
-input[type=range]#volume-control::-moz-range-thumb {
+input[type=range]#volume-control::-moz-range-thumb,
+input[type=range]#video-progress::-moz-range-thumb {
   box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
   border: 1px solid #000000;
   background: var(--text-color);
   cursor: pointer;
+}
+input[type=range]#video-progress::-moz-range-track {
+  width: 100%;
+  margin: 0 auto;
+  max-width: 900px;
+
 }
