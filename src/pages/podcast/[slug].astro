@@ -127,12 +127,14 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
             <source src={episode.videoFile?.asset?.url} type="video/mp4" />
             Your browser does not support the video element.
           </video>
-          <div class="controls" id="seek-bar">
+          <div class="controls">
             <div class="progress">
-              <div class="progress__filled"></div>
+              <input type="range" class="progress__filled" id="video-progress"></div>
             </div>
     <button class="controls_button" id="toggleButton" title="Toggle Play">►</button>
-     <input
+  <button class="controls__button" data-skip="-10">« 10s</button>
+  <button class="controls__button" data-skip="25">10s »</button>
+  <input
     type="range"
     name="volume"
     class="controls__slider"
@@ -142,8 +144,6 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
     step="0.05"
     value="1"
   />
-  <button class="controls__button" data-skip="-10">« 10s</button>
-  <button class="controls__button" data-skip="25">10s »</button>
   <select class="video-speed">
                     <option value="0.5">0.5x</option>
                     <option value="0.75">0.75x</option>
