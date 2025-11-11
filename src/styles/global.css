@@ -3,6 +3,8 @@
 }
 
 html {
+  display: table;
+  margin: auto;
   background-color: var(--background-color);
   color: var(--text-color);
   font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
@@ -14,20 +16,18 @@ html {
     align-items: center;
   }
   body {
-    margin: 0 auto;
-    width: 100%;
-    max-width: 80ch;
+    display: table-cell;
+    vertical-align: middle;
     padding: 1rem;
     line-height: 1.5;
-
-  
   }
  
   h1 {
-    margin: 2.5rem 0;
+    margin: 2.5rem auto;
     font-size: 2.5rem;
-    background-image: var(--h1-bg-color);
-    padding: 0 0.1em;
+    text-align: center;
+    background: var(--h1-bg-color);
+    padding: 10px;
     border-radius: 16px;
   }
   a {
@@ -84,7 +84,7 @@ html {
   --text-color: #000;
   --link-bg-color: #f1d4a1;
   --hamburger-line-color: #000;
-  --h1-bg-color: linear-gradient(to right, #f1d4a1, #edc06a);
+  --h1-bg-color: #f1d4a1;
   --card-bg-color: #f1d4a1;
   --btn-bg-color: #9c7c99;
   --btn-hover-color: #685466;
@@ -112,7 +112,7 @@ html {
   --text-color: #f1d4a1;
   --link-bg-color: #494949;
   --hamburger-line-color: #f1d4a1;
-  --h1-bg-color: linear-gradient(to right, #494949, #303030);
+  --h1-bg-color: #494949;
   --card-bg-color: #494949;
   --btn-bg-color: #685466;
   --btn-hover-color: #3e3d3e;

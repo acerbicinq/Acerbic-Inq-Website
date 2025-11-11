@@ -153,14 +153,13 @@ playbackSpeed.addEventListener('change', function() {
     }
 
 
- });
+
 
 // Video Player Controls
 const video = document.querySelector(".video");
-const toggleButton = document.querySelector(".controls_button");
-const progress = document.querySelector(".progress");
-const progressBar = document.querySelector(".progress__filled");
-const sliders = document.querySelectorAll(".controls__slider");
+const toggleButton = document.querySelector(".play_button");
+const progress = document.getElementById("video-progress");
+const volumeSlider = document.querySelector(".volume__slider");
 const skipBtns = document.querySelectorAll("[data-skip]");
 
 
@@ -176,24 +175,20 @@ function togglePlay() {
 function updateToggleButton() {
   toggleButton.innerHTML = video.paused ? "►" : "❚❚";
 }
-    //Progress Slider - Nothing Shows...
-function handleProgress() {
-  const progressPercentage = (video.currentTime / video.duration) * 100;
-  progressBar.style.flexBasis = `${progressPercentage}%`;
-}
+    //Progress Bar & Video Duration -- Add timestamp display later
+video.addEventListener("timeupdate", () => {
+  // Update the thumb position (0–100)
+  const percent = (video.currentTime / video.duration) * 100;
+  progress.value = percent;
+});
 
-function scrub(e) {
-  const scrubTime = (e.offsetX / progress.offsetWidth) * video.duration;
-  video.currentTime = scrubTime;
-}
+// Scrubbing Functionality
+progress.addEventListener("input", (e) => {
+  const newTime = (e.target.value / 100) * video.duration;
+  video.currentTime = newTime;
+});
 
-function handleSliderUpdate() {
-  video[this.name] = this.value;
-}
-    //Skip ahead/Back
-function handleSkip() {
-  video.currentTime += +this.dataset.skip;
-}
+
 
 //Play/Pause Toggle Functionality
 toggleButton.addEventListener("click", togglePlay);
@@ -201,21 +196,20 @@ video.addEventListener("click", togglePlay);
 video.addEventListener("play", updateToggleButton);
 video.addEventListener("pause", updateToggleButton);
 
-video.addEventListener("timeupdate", handleProgress);
-progress.addEventListener("click", scrub);
-    //Volume Functionality
-sliders.forEach((slider) => {
-  slider.addEventListener("change", handleSliderUpdate);
-});
-    //Skip Forward/Backward Functionality
-skipBtns.forEach((btn) => {
-  btn.addEventListener("click", handleSkip);
-});
+//Skip Forward/Backward Functionality
+function handleSkip() {
+  video.currentTime += parseFloat(this.dataset.skip);
+}
+skipBtns.forEach((btn) => btn.addEventListener("click", handleSkip));
 
-let mousedown = false;
-progress.addEventListener("mousedown", () => (mousedown = true));
-progress.addEventListener("mousemove", (e) => mousedown && scrub(e));
-progress.addEventListener("mouseup", () => (mousedown = false));
+
+//Volume Functionality
+if (volumeSlider) {
+  // "input" updates continuously while dragging
+  volumeSlider.addEventListener("input", (e) => {
+    video.volume = e.target.value; // value is 0 → 1
+  });
+}
 
   //Keyboard Spacebar Play/Pause
 document.addEventListener("keydown", (e) => {
@@ -223,3 +217,5 @@ document.addEventListener("keydown", (e) => {
 });
 
   //Fullscreen Toggle
+
+   });
