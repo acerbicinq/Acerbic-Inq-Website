@@ -101,47 +101,73 @@ function formatTimestamp(seconds) {
  // Audio Player Controller
     var audio = document.getElementById('mainAudio');
     var playPauseButton = document.getElementById('play-pause');
-    var seekBar = document.getElementById('seek-bar');
+    var seekBar = document.getElementById('audio-seek-bar');
     var currentTime = document.getElementById('current-time');
     var duration = document.getElementById('duration');
+    // Select all audio skip buttons (may be two: back and forward)
+    var audioSkipBtns = document.querySelectorAll('.audio-skip-back-button, .audio-skip-forward-button');
 
-    audio.addEventListener('loadedmetadata', function() {
-  duration.textContent = formatTime(audio.duration);
-});
+    if (audio) {
+      if (duration) {
+        audio.addEventListener('loadedmetadata', function() {
+          duration.textContent = formatTime(audio.duration);
+        });
+      }
 
-    playPauseButton.addEventListener('click', function() {
-        if (audio.paused) {
+      if (playPauseButton) {
+        playPauseButton.addEventListener('click', function() {
+          if (audio.paused) {
             audio.play();
             playPauseButton.textContent = '❚❚';
-        } else {
+          } else {
             audio.pause();
             playPauseButton.textContent = '►';
+          }
+        });
+      }
+
+      audio.addEventListener('timeupdate', function() {
+        if (audio.duration && seekBar) {
+          var value = (audio.currentTime / audio.duration) * 100;
+          seekBar.value = value;
         }
-    });
+        if (currentTime) currentTime.textContent = formatTime(audio.currentTime);
+        if (duration) duration.textContent = formatTime(audio.duration);
+      });
 
-    audio.addEventListener('timeupdate', function() {
-        var value = (audio.currentTime / audio.duration) * 100;
-        seekBar.value = value;
-        currentTime.textContent = formatTime(audio.currentTime);
-        duration.textContent = formatTime(audio.duration);
-    });
-// Seekbar for Audio Playback
-    seekBar.addEventListener('input', function() {
-        var time = (seekBar.value / 100) * audio.duration;
-        audio.currentTime = time;
-    });
+      // Seekbar for Audio Playback
+      if (seekBar) {
+        seekBar.addEventListener('input', function() {
+          if (!audio.duration) return;
+          var time = (seekBar.value / 100) * audio.duration;
+          audio.currentTime = time;
+        });
+      }
 
-    //Volume Control
-    var volumeControl = document.getElementById('volume-control');
-volumeControl.addEventListener('input', function() {
-    audio.volume = volumeControl.value;
-});
+      //Volume Control
+      var volumeControl = document.getElementById('audio-volume-control');
+      if (volumeControl) {
+        volumeControl.addEventListener('input', function() {
+          audio.volume = volumeControl.value;
+        });
+      }
 
-    // Playback Speed Selector
-    var playbackSpeed = document.getElementById('playback-speed');
-playbackSpeed.addEventListener('change', function() {
-  audio.playbackRate = playbackSpeed.value;
-});
+      //Audio Skip Functionality (namespaced)
+      function handleAudioSkip() {
+        audio.currentTime += parseFloat(this.dataset.skip);
+      }
+      if (audioSkipBtns && audioSkipBtns.length) {
+        audioSkipBtns.forEach((btn) => btn.addEventListener('click', handleAudioSkip));
+      }
+
+      // Playback Speed Selector
+      var playbackSpeed = document.getElementById('playback-speed');
+      if (playbackSpeed) {
+        playbackSpeed.addEventListener('change', function() {
+          audio.playbackRate = playbackSpeed.value;
+        });
+      }
+    }
 
     function formatTime(seconds) {
         var minutes = Math.floor(seconds / 60);
@@ -156,15 +182,16 @@ playbackSpeed.addEventListener('change', function() {
 
 
 // Video Player Controls
-const video = document.querySelector(".video");
-const toggleButton = document.querySelector(".play_button");
-const progress = document.getElementById("video-progress");
-const volumeSlider = document.querySelector(".volume__slider");
-const skipBtns = document.querySelectorAll("[data-skip]");
-const videoSpeed = document.querySelector(".video-speed");
-const videoTime = document.getElementById("video-time");
-const videoDuration = document.getElementById("video-duration");
-const fullscreenBtn = document.querySelector(".fullscreen-button"); 
+const video = document.querySelector('.video');
+const toggleButton = document.querySelector('.play_button');
+const progress = document.getElementById('video-progress');
+const volumeSlider = document.querySelector('.volume__slider');
+// scope video skip buttons to video player controls only (video uses different classes)
+const skipBtns = document.querySelectorAll('.video-player .skip-back-button, .video-player .skip-forward-button');
+const videoSpeed = document.querySelector('.video-speed');
+const videoTime = document.getElementById('video-time');
+const videoDuration = document.getElementById('video-duration');
+const fullscreenBtn = document.querySelector('.fullscreen-button'); 
 
 
     //Play/Pause Toggle Button
@@ -213,10 +240,13 @@ video.addEventListener("loadedmetadata", () => {
 });
 
 //Skip Forward/Backward Functionality
-function handleSkip() {
+function handleVideoSkip() {
+  if (!video) return;
   video.currentTime += parseFloat(this.dataset.skip);
 }
-skipBtns.forEach((btn) => btn.addEventListener("click", handleSkip));
+if (skipBtns && skipBtns.length) {
+  skipBtns.forEach((btn) => btn.addEventListener('click', handleVideoSkip));
+}
 
 
 //Volume Functionality
@@ -252,6 +282,8 @@ fullscreenBtn.addEventListener("click", () => {
 const mediaButtons = document.querySelectorAll(".media-btn");
 const audioContainer = document.getElementById("audio-player-container");
 const videoContainer = document.getElementById("video-player-container");
+// Episode cover wrapper — hide during video mode
+const coverSection = document.querySelector('.episode-cover-section');
 
 // Pull saved preference OR default to "audio"
 let savedMode = localStorage.getItem("preferredMediaMode") || "audio";
@@ -266,10 +298,12 @@ function applyMode(type) {
     video.pause();
     audioContainer.classList.remove("hidden");
     videoContainer.classList.add("hidden");
+    if (coverSection) coverSection.classList.remove('hidden');
   } else if (type === "video") {
     audio.pause();
     videoContainer.classList.remove("hidden");
     audioContainer.classList.add("hidden");
+    if (coverSection) coverSection.classList.add('hidden');
   }
 }
 

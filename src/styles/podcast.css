@@ -5,20 +5,24 @@
 
 
 /* Audio Player Controls */
-.audio-player-container {
+#audio-player-container, .audio-player-container {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: nowrap;
+  flex-direction: column; /* stack seekbar above controls */
+  align-items: stretch;
+  justify-content: flex-start;
   border: var(--text-color) 2px solid;
-  padding: 1em;
+  padding: 0.75em;
   box-shadow: 2px 2px var(--text-color);
+  gap: 0.5rem;
 }
-
+.audio-seek-container {
+  width: 100%;
+  margin: -18px 0;
+}
 #play-pause,
 #volume-control,
 #playback-speed,
-#seek-bar,
+#audio-seek-bar,
 #current-time,
 #duration {
  padding: 5px;
@@ -37,10 +41,28 @@
 #volume-control {
   width: 4.5rem;
 }
-#seek-bar {
-  flex: auto;
+#audio-seek-bar {
+  width: 100%;
   min-width: 120px;
-  max-width: 800px;
+  max-width: 100%;
+}
+
+.audio-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.audio-controls #play-pause {
+  flex: 0 0 auto;
+}
+.audio-controls #current-time,
+.audio-controls #duration {
+  flex: 0 0 auto;
+}
+.audio-controls #audio-volume-control {
+  width: 4.5rem;
 }
 
 /* Video Player Controls */
@@ -119,12 +141,14 @@ margin: 3px;
 /* Removes Default Audio Player Styling Across All Browsers */
 input[type=range] {
   -webkit-appearance: none; /* Hides the slider so that custom slider can be made */
+  appearance: none;
   width: 100%; /* Specific width is required for Firefox. */
   background: transparent; /* Otherwise white in Chrome */
 }
 
 input[type=range]::-webkit-slider-thumb {
   -webkit-appearance: none;
+  appearance: none;
 }
 
 input[type=range]:focus {
@@ -176,17 +200,18 @@ input[type=range]::-ms-thumb {
 /* MEDIA PLAYER STYLING */
 /* MEDIA PLAYER STYLING */
 
-input[type=range]#seek-bar,
+input[type=range]#audio-seek-bar,
 input[type=range]#video-progress {
   -webkit-appearance: none;
+  appearance: none;
   margin: 18px 0;
   width: 100%;
 }
-input[type=range]#seek-bar:focus;
+input[type=range]#audio-seek-bar:focus,
 input[type=range]#video-progress:focus {
   outline: none;
 }
-input[type=range]#seek-bar::-webkit-slider-runnable-track,
+input[type=range]#audio-seek-bar::-webkit-slider-runnable-track,
 input[type=range]#video-progress::-webkit-slider-runnable-track {
   width: 100%;
   height: 8.4px;
@@ -196,7 +221,7 @@ input[type=range]#video-progress::-webkit-slider-runnable-track {
   border-radius: 1.3px;
   border: 0.2px solid var(--text-color);
 }
-input[type=range]#seek-bar::-webkit-slider-thumb {
+input[type=range]#audio-seek-bar::-webkit-slider-thumb {
   box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
   border: 1px solid #000000;
   height: 26px;
@@ -207,11 +232,11 @@ input[type=range]#seek-bar::-webkit-slider-thumb {
   -webkit-appearance: none;
   margin-top: -14px;
 }
-input[type=range]#seek-bar:focus::-webkit-slider-runnable-track,
+input[type=range]#audio-seek-bar:focus::-webkit-slider-runnable-track,
 input[type=range]#video-progress:focus::-webkit-slider-runnable-track {
   background: var(--btn-background-color);
 }
-input[type=range]#seek-bar::-moz-range-track,
+input[type=range]#audio-seek-bar::-moz-range-track,
 input[type=range]#video-progress::-moz-range-track {
   width: 100%;
   height: 8.4px;
@@ -221,7 +246,7 @@ input[type=range]#video-progress::-moz-range-track {
   border-radius: 1.3px;
   border: 0.2px solid #010101;
 }
-input[type=range]#seek-bar::-moz-range-thumb {
+input[type=range]#audio-seek-bar::-moz-range-thumb {
   box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
   border: 1px solid #000000;
   height: 26px;
@@ -230,7 +255,7 @@ input[type=range]#seek-bar::-moz-range-thumb {
   background: var(--text-color);
   cursor: pointer;
 }
-input[type=range]#seek-bar::-ms-track,
+input[type=range]#audio-seek-bar::-ms-track,
 input[type=range]#video-progress::-ms-track
  {
   width: 100%;
@@ -241,21 +266,21 @@ input[type=range]#video-progress::-ms-track
   border-width: 16px 0;
   color: transparent;
 }
-input[type=range]#seek-bar::-ms-fill-lower,
+input[type=range]#audio-seek-bar::-ms-fill-lower,
 input[type=range]#video-progress::-ms-fill-lower {
   background: var(--btn-background-color);
   border: 0.2px solid #010101;
   border-radius: 2.6px;
   box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
 }
-input[type=range]#seek-bar::-ms-fill-upper,
+input[type=range]#audio-seek-bar::-ms-fill-upper,
 input[type=range]#video-progress::-ms-fill-upper {
   background: var(--btn-background-color);
   border: 0.2px solid #010101;
   border-radius: 2.6px;
   box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
 }
-input[type=range]#seek-bar::-ms-thumb {
+input[type=range]#audio-seek-bar::-ms-thumb {
   box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
   border: 1px solid #000000;
   height: 26px;
@@ -264,22 +289,22 @@ input[type=range]#seek-bar::-ms-thumb {
   background: var(--btn-bg-color);
   cursor: pointer;
 }
-input[type=range]#seek-bar:focus::-ms-fill-lower,
+input[type=range]#audio-seek-bar:focus::-ms-fill-lower,
 input[type=range]#video-progress:focus::-ms-fill-lower {
   background: #3071a9;
 }
-input[type=range]#seek-bar:focus::-ms-fill-upper,
+input[type=range]#audio-seek-bar:focus::-ms-fill-upper,
 input[type=range]#video-progress:focus::-ms-fill-upper {
   background: #367ebd;
 }
 
 /* VOLUME CONTROL STYLING */
 /* VOLUME CONTROL STYLING */
-input[type=range]#volume-control::-webkit-slider-thumb,
+input[type=range]#audio-volume-control::-webkit-slider-thumb,
 input[type=range]#video-progress::-webkit-slider-thumb {
   background: var(--text-color);
 }
-input[type=range]#volume-control::-webkit-slider-runnable-track {
+input[type=range]#audio-volume-control::-webkit-slider-runnable-track {
   cursor: pointer;
   box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
   background: var(--btn-bg-color);
@@ -287,8 +312,9 @@ input[type=range]#volume-control::-webkit-slider-runnable-track {
   border: 0.2px solid #010101;
 }
 
-input[type=range]#volume-control::-moz-range-track {
-  width: 50px;
+input[type=range]#audio-volume-control::-moz-range-track,
+input[type=range]#video-volume-control::-moz-range-track {
+  width: 100%;
   height: 8.4px;
   cursor: pointer;
   box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
@@ -297,7 +323,8 @@ input[type=range]#volume-control::-moz-range-track {
   border: 0.2px solid #010101;
 }
 
-input[type=range]#volume-control::-moz-range-thumb,
+input[type=range]#audio-volume-control::-moz-range-thumb,
+input[type=range]#video-volume-control::-moz-range-thumb,
 input[type=range]#video-progress::-moz-range-thumb {
   box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
   border: 1px solid #000000;

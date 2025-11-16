@@ -78,7 +78,7 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
   <div class="episode-container">
     <header class="episode-header">
 
-      <div class="episode-cover-section" id="audio-player-container">
+      <div class="episode-cover-section">
         {episode.coverArt && (
           <img 
             src={urlFor(episode.coverArt).width(500).height(600).url()} 
@@ -90,15 +90,18 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
     
 <div class="audio-player">
             {episode.audioFile && (
-        <div class="audio-player-container" data-media="audio">
+  <div id="audio-player-container" class="audio-player-container" data-media="audio">
           <audio id="mainAudio" preload="metadata" class="controls">
             <source src={episode.audioFile?.asset?.url} type="audio/mpeg" />
             Your browser does not support the audio element.
           </audio>
+          <div class="audio-seek-container"><input type="range" id="audio-seek-bar" min="0" max="100" value="0"></div>
+          <div class="audio-controls">
                 <button id="play-pause">►</button>
-                <input type="range" id="seek-bar" min="0" max="100" value="0">
                 <span id="current-time">0:00</span> / <span id="duration">0:00</span>
-                <input type="range" id="volume-control" min="0" max="1" step="0.1" value="1">
+                <input type="range" id="audio-volume-control" min="0" max="1" step="0.1" value="1">
+                <button class="audio-skip-back-button" data-skip="-10">« 10s</button>
+                <button class="audio-skip-forward-button" data-skip="25">10s »</button>
                 <select id="playback-speed">
                     <option value="0.5">0.5x</option>
                     <option value="0.75">0.75x</option>
@@ -106,6 +109,7 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
                     <option value="1.5">1.5x</option>
                     <option value="2">2x</option>
                 </select>
+          </div>
             
             
 
@@ -122,7 +126,7 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
     <div class="video-player-container" id="video-player-container">
       
       {episode.videoFile && (
-        <div class="video-player" id="mainVideo" data-media="video">
+        <div class="video-player" data-media="video">
           <video id="mainVideo" class="video" preload="metadata">
             <source src={episode.videoFile?.asset?.url} type="video/mp4" />
             Your browser does not support the video element.
@@ -145,7 +149,7 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
                 type="range"
                 name="volume"
                 class="volume__slider"
-                id="volume-control"
+                id="video-volume-control"
                 min="0"
                 max="1"
                 step="0.05"
