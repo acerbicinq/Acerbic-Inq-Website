@@ -78,7 +78,7 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
   <div class="episode-container">
     <header class="episode-header">
 
-      <div class="episode-cover-section">
+      <div class="episode-cover-section" id="audio-player-container">
         {episode.coverArt && (
           <img 
             src={urlFor(episode.coverArt).width(500).height(600).url()} 
@@ -90,7 +90,7 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
     
 <div class="audio-player">
             {episode.audioFile && (
-        <div class="audio-player-container active" data-media="audio">
+        <div class="audio-player-container" data-media="audio">
           <audio id="mainAudio" preload="metadata" class="controls">
             <source src={episode.audioFile?.asset?.url} type="audio/mpeg" />
             Your browser does not support the audio element.
@@ -119,7 +119,7 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
     </header>
 
     <!-- Video Player -->
-    <div class="video-player-container">
+    <div class="video-player-container" id="video-player-container">
       
       {episode.videoFile && (
         <div class="video-player" id="mainVideo" data-media="video">
@@ -173,7 +173,7 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
 <!-- Media Player Controls -->
     <div class="media-controls">
       <div class="media-selector">
-        <button class="media-btn active" data-type="audio">🎧 Audio</button>
+        <button class="media-btn" data-type="audio">🎧 Audio</button>
         {episode.videoFile && (
           <button class="media-btn" data-type="video">📹 Video</button>
         )}

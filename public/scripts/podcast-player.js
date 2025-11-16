@@ -98,7 +98,7 @@ function formatTimestamp(seconds) {
       episodeData.transcript = parseTranscriptText();
     }
     
- // Basic Player Controller
+ // Audio Player Controller
     var audio = document.getElementById('mainAudio');
     var playPauseButton = document.getElementById('play-pause');
     var seekBar = document.getElementById('seek-bar');
@@ -161,6 +161,10 @@ const toggleButton = document.querySelector(".play_button");
 const progress = document.getElementById("video-progress");
 const volumeSlider = document.querySelector(".volume__slider");
 const skipBtns = document.querySelectorAll("[data-skip]");
+const videoSpeed = document.querySelector(".video-speed");
+const videoTime = document.getElementById("video-time");
+const videoDuration = document.getElementById("video-duration");
+const fullscreenBtn = document.querySelector(".fullscreen-button"); 
 
 
     //Play/Pause Toggle Button
@@ -196,6 +200,18 @@ video.addEventListener("click", togglePlay);
 video.addEventListener("play", updateToggleButton);
 video.addEventListener("pause", updateToggleButton);
 
+//Video Duration Display
+  video.addEventListener("timeupdate", () => {
+    const percent = (video.currentTime / video.duration) * 100;
+    progress.value = percent;
+    videoTime.textContent = formatTimestamp(video.currentTime);
+    videoDuration.textContent = formatTimestamp(video.duration);
+  });
+//Duration Displays as soon as metadata loads
+video.addEventListener("loadedmetadata", () => {
+  videoDuration.textContent = formatTime(video.duration);
+});
+
 //Skip Forward/Backward Functionality
 function handleSkip() {
   video.currentTime += parseFloat(this.dataset.skip);
@@ -210,12 +226,71 @@ if (volumeSlider) {
     video.volume = e.target.value; // value is 0 → 1
   });
 }
-
+//Playback Speed Functionality
+videoSpeed.addEventListener('change', function() {
+  video.playbackRate = parseFloat(videoSpeed.value);
+});
   //Keyboard Spacebar Play/Pause
 document.addEventListener("keydown", (e) => {
   if (e.code === "Space") togglePlay();
 });
 
   //Fullscreen Toggle
+fullscreenBtn.addEventListener("click", () => {
+  if (!document.fullscreenElement) {
+    video.requestFullscreen();
+  } else {
+    document.exitFullscreen();
+  }
+});
 
+
+
+
+
+// AUDIO/VIDEO MODE TOGGLE
+// AUDIO/VIDEO MODE TOGGLE
+const mediaButtons = document.querySelectorAll(".media-btn");
+const audioContainer = document.getElementById("audio-player-container");
+const videoContainer = document.getElementById("video-player-container");
+
+// Pull saved preference OR default to "audio"
+let savedMode = localStorage.getItem("preferredMediaMode") || "audio";
+
+// Apply a mode (audio or video)
+function applyMode(type) {
+  // Update active button styling
+  mediaButtons.forEach(b => b.classList.remove("active"));
+  document.querySelector(`[data-type="${type}"]`).classList.add("active");
+
+  if (type === "audio") {
+    video.pause();
+    audioContainer.classList.remove("hidden");
+    videoContainer.classList.add("hidden");
+  } else if (type === "video") {
+    audio.pause();
+    videoContainer.classList.remove("hidden");
+    audioContainer.classList.add("hidden");
+  }
+}
+
+// Apply saved default mode on page load
+applyMode(savedMode);
+
+// When user clicks a media toggle button
+mediaButtons.forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const type = btn.dataset.type;
+
+    // Save preference for future visits
+    localStorage.setItem("preferredMediaMode", type);
+
+    // Apply mode immediately
+    applyMode(type);
+  });
+});
+
+
+
+  //DOM Bracket - Keep at end of file
    });
