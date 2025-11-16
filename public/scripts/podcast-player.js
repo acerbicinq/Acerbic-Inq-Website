@@ -325,5 +325,18 @@ mediaButtons.forEach((btn) => {
 
 
 
+
+// Chapters Scroller
+
+//Step 1. Chapter Jump Buttons Jump to Timestamps
+//Step 2. Add Interlude buttons between chapters
+//Step 3. Have Interlude buttons play corresponding audio/video from YT.
+//Step 4. Sync chapter highlighting with playback position.
+//Step 5. Add controls for Interludes (Skip, Play/Pause)....
+
+
+
+
+
   //DOM Bracket - Keep at end of file
    });
