@@ -85,7 +85,7 @@
 .media-btn {
     background-color: var(--selected-mode-btn-color);
     color: var(--h1-bg-color);
-    border: 1px solid var(--btn-bg-color);
+    border: 1px solid var(--text-color);
     padding: 10px 30px;
     cursor: pointer;
     border-radius: 4px;
@@ -95,6 +95,7 @@
 
 .media-btn.active {
   background-color: var(--dormant-mode-btn-color);
+  box-shadow: var(--text-color) -1px -1px;
 }
 
 /*Trancript Controls Styling*/

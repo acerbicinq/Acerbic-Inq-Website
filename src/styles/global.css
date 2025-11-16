@@ -90,8 +90,9 @@ html {
   --btn-hover-color: #685466;
   --selected-mode-btn-color: #303030;
   --dormant-mode-btn-color: #494949;
+}
 
-/* Define dark theme styles */
+/* Dark theme variable overrides: add the class `.dark` to a top-level element (html or body) */
 .dark {
   --background-color: #303030;
   --text-color: #f1d4a1;
@@ -102,31 +103,6 @@ html {
   --btn-hover-color: #3e3d3e;
   --selected-mode-btn-color: #f1d4a1;
   --dormant-mode-btn-color: #edc06a;
-
-  
-  /* Dark theme adjustments for new palette */
-  --player-bg: #424242;
-  --player-accent: var(--color-gold);
-  --player-text: #ffffff;
-  --player-secondary: #606060;
-  --waveform-progress: var(--color-teal);
-  --waveform-bg: #505050;
-}
-/* New color palette from design guide */
-  --color-plum: #685466;
-  --color-blush: #eecad4;
-  --color-gold: #dbb982;
-  --color-sage: #cfdcda;
-  --color-teal: #5e7f7b;
-  --color-charcoal: #666e70;
-  
-  /* Music player specific colors */
-  --player-bg: var(--color-plum);
-  --player-accent: var(--color-gold);
-  --player-text: #ffffff;
-  --player-secondary: var(--color-blush);
-  --waveform-progress: var(--color-teal);
-  --waveform-bg: var(--color-sage);
 }
 
 /* Styles for Footer */
