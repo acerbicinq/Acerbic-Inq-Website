@@ -77,6 +77,26 @@
     display: none !important;
 } 
 
+.media-selector {
+    margin-top: 1em;
+    display: flex;
+    justify-content: center;
+}
+.media-btn {
+    background-color: var(--selected-mode-btn-color);
+    color: var(--h1-bg-color);
+    border: 1px solid var(--btn-bg-color);
+    padding: 10px 30px;
+    cursor: pointer;
+    border-radius: 4px;
+    margin: 0 0.5em;
+    box-shadow: var(--text-color) 1px 1px;
+}
+
+.media-btn.active {
+  background-color: var(--dormant-mode-btn-color);
+}
+
 /*Trancript Controls Styling*/
 .transcript-toggle-btn {
     background-color: var(--btn-bg-color);

@@ -88,8 +88,31 @@ html {
   --card-bg-color: #f1d4a1;
   --btn-bg-color: #9c7c99;
   --btn-hover-color: #685466;
+  --selected-mode-btn-color: #303030;
+  --dormant-mode-btn-color: #494949;
+
+/* Define dark theme styles */
+.dark {
+  --background-color: #303030;
+  --text-color: #f1d4a1;
+  --link-bg-color: #494949;
+  --hamburger-line-color: #f1d4a1;
+  --h1-bg-color: #494949;
+  --btn-bg-color: #685466;
+  --btn-hover-color: #3e3d3e;
+  --selected-mode-btn-color: #f1d4a1;
+  --dormant-mode-btn-color: #edc06a;
+
   
-  /* New color palette from design guide */
+  /* Dark theme adjustments for new palette */
+  --player-bg: #424242;
+  --player-accent: var(--color-gold);
+  --player-text: #ffffff;
+  --player-secondary: #606060;
+  --waveform-progress: var(--color-teal);
+  --waveform-bg: #505050;
+}
+/* New color palette from design guide */
   --color-plum: #685466;
   --color-blush: #eecad4;
   --color-gold: #dbb982;
@@ -105,29 +128,6 @@ html {
   --waveform-progress: var(--color-teal);
   --waveform-bg: var(--color-sage);
 }
-
-/* Define dark theme styles */
-.dark {
-  --background-color: #303030;
-  --text-color: #f1d4a1;
-  --link-bg-color: #494949;
-  --hamburger-line-color: #f1d4a1;
-  --h1-bg-color: #494949;
-  --card-bg-color: #494949;
-  --btn-bg-color: #685466;
-  --btn-hover-color: #3e3d3e;
-
-
-  
-  /* Dark theme adjustments for new palette */
-  --player-bg: #424242;
-  --player-accent: var(--color-gold);
-  --player-text: #ffffff;
-  --player-secondary: #606060;
-  --waveform-progress: var(--color-teal);
-  --waveform-bg: #505050;
-}
-
 
 /* Styles for Footer */
 footer {

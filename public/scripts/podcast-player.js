@@ -249,7 +249,6 @@ fullscreenBtn.addEventListener("click", () => {
 
 
 // AUDIO/VIDEO MODE TOGGLE
-// AUDIO/VIDEO MODE TOGGLE
 const mediaButtons = document.querySelectorAll(".media-btn");
 const audioContainer = document.getElementById("audio-player-container");
 const videoContainer = document.getElementById("video-player-container");
