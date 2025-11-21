@@ -9,7 +9,7 @@ html {
   color: var(--text-color);
   font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
   }
-  
+
   header {
     margin-top: 3em;
     display: flex;
@@ -137,4 +137,5 @@ display: block;
 margin: 0 auto;
 text-align: center;
 color: var(--text-color);
+}
 }

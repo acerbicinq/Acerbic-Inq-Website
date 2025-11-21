@@ -13,6 +13,7 @@ function formatTimestamp(seconds) {
   }
 }
 
+
   document.addEventListener('DOMContentLoaded', function() {
     console.log('Phase 1 Podcast player initializing...');
     
@@ -97,16 +98,42 @@ function formatTimestamp(seconds) {
     if (!episodeData.transcript || episodeData.transcript.length === 0) {
       episodeData.transcript = parseTranscriptText();
     }
-    
- // Audio Player Controller
+
+ //TimeStamp Parser for Audio & Video
+  function parseTimestamp(ts) {
+  const parts = ts.split(':').map(Number);
+  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  if (parts.length === 2) return parts[0] * 60 + parts[1];
+  return 0;
+}   
+
+
+
+// Audio Player Controller
     var audio = document.getElementById('mainAudio');
     var playPauseButton = document.getElementById('play-pause');
     var seekBar = document.getElementById('audio-seek-bar');
     var currentTime = document.getElementById('current-time');
     var duration = document.getElementById('duration');
-    // Select all audio skip buttons (may be two: back and forward)
     var audioSkipBtns = document.querySelectorAll('.audio-skip-back-button, .audio-skip-forward-button');
 
+    //Identify Current Chapter Based on Playback Position
+    const chapterButtons = document.querySelectorAll('.chapter-button');
+    const chapters = [...chapterButtons].map(btn => ({
+      title: btn.textContent.trim(),
+      start: parseTimestamp(btn.dataset.startTime),
+      end: parseTimestamp(btn.dataset.endTime),
+      })); 
+
+  
+// Audio Player Controls
+function updateAudioPlayPauseUI() {
+  if (audio.paused) {
+    playPauseButton.textContent = '►';
+  } else {
+    playPauseButton.textContent = '❚❚';
+  }
+}
     if (audio) {
       if (duration) {
         audio.addEventListener('loadedmetadata', function() {
@@ -115,17 +142,16 @@ function formatTimestamp(seconds) {
       }
 
       if (playPauseButton) {
-        playPauseButton.addEventListener('click', function() {
-          if (audio.paused) {
-            audio.play();
-            playPauseButton.textContent = '❚❚';
-          } else {
-            audio.pause();
-            playPauseButton.textContent = '►';
-          }
-        });
-      }
-
+  playPauseButton.addEventListener('click', function () {
+    if (audio.paused) {
+      audio.play();
+    } else {
+      audio.pause();
+    }
+    updateAudioPlayPauseUI();
+  });
+}
+      let lastChapterIndex = -1;
       audio.addEventListener('timeupdate', function() {
         if (audio.duration && seekBar) {
           var value = (audio.currentTime / audio.duration) * 100;
@@ -133,6 +159,22 @@ function formatTimestamp(seconds) {
         }
         if (currentTime) currentTime.textContent = formatTime(audio.currentTime);
         if (duration) duration.textContent = formatTime(audio.duration);
+
+    //Chapter Detection
+    const current = Math.floor(audio.currentTime);
+      const currentChapterIndex = chapters.findIndex(ch =>
+          current >= ch.start && current < ch.end
+        );
+
+        if (currentChapterIndex !== lastChapterIndex) {
+        if (currentChapterIndex !== -1) {
+          console.log("You're in chapter:", currentChapterIndex + 1);
+        } else {
+          console.log("Out of Chapter");
+        }
+        lastChapterIndex = currentChapterIndex; // <- update correctly
+      }
+
       });
 
       // Seekbar for Audio Playback
@@ -178,6 +220,8 @@ function formatTimestamp(seconds) {
         return minutes + ':' + seconds;
     }
 
+    
+
 
 
 
@@ -186,7 +230,6 @@ const video = document.querySelector('.video');
 const toggleButton = document.querySelector('.play_button');
 const progress = document.getElementById('video-progress');
 const volumeSlider = document.querySelector('.volume__slider');
-// scope video skip buttons to video player controls only (video uses different classes)
 const skipBtns = document.querySelectorAll('.video-player .skip-back-button, .video-player .skip-forward-button');
 const videoSpeed = document.querySelector('.video-speed');
 const videoTime = document.getElementById('video-time');
@@ -206,7 +249,7 @@ function togglePlay() {
 function updateToggleButton() {
   toggleButton.innerHTML = video.paused ? "►" : "❚❚";
 }
-    //Progress Bar & Video Duration -- Add timestamp display later
+    //Progress Bar & Video Duration
 video.addEventListener("timeupdate", () => {
   // Update the thumb position (0–100)
   const percent = (video.currentTime / video.duration) * 100;
@@ -329,6 +372,25 @@ mediaButtons.forEach((btn) => {
 // Chapters Scroller
 
 //Step 1. Chapter Jump Buttons Jump to Timestamps
+  chapterButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+      const ts = button.dataset.startTime;            // timestamp string
+      const seconds = parseTimestamp(ts);             // convert → seconds
+
+    // Jump media depending on which one is visible
+    if (!videoContainer.classList.contains('hidden')) {
+      video.currentTime = seconds;
+      video.play();
+    } else {
+      audio.currentTime = seconds;
+      audio.play();
+      updateAudioPlayPauseUI();
+    }
+  });
+});
+
+ 
+
 //Step 2. Add Interlude buttons between chapters
 //Step 3. Have Interlude buttons play corresponding audio/video from YT.
 //Step 4. Sync chapter highlighting with playback position.

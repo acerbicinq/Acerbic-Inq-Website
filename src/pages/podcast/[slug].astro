@@ -183,21 +183,26 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
         )}
       </div>
 
-<!-- Chapter Pills Scroller -->
+<!-- Chapter Buttons Scroller -->
 <div class="chapters-scroller">
   <div class="chapters-track">
     {episode.chapters.map((chapter, index) => (
       <>
         <button 
-          class="chapter-pill" 
+          class="chapter-button" 
           data-start-time={chapter.startTime}
+          data-end-time={chapter.endTime}
         >
           {index + 1}. {chapter.title} ({chapter.startTime})
+                          {chapter.description && (
+                  <p class="chapter-description hidden">{chapter.description}</p>
+                )}
         </button>
 
         {/* Optional interlude indicator */}
         {chapter.interludeTracks && chapter.interludeTracks.length > 0 && (
-          <span class="chapter-interlude">Interlude</span>
+          <button class="interlude-button">Interlude</button>
+          <audio id="interlude-audio" style="display:none;"></audio>
         )}
       </>
     ))}
