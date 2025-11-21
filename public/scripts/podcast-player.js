@@ -18,10 +18,23 @@ function formatTimestamp(seconds) {
     console.log('Phase 1 Podcast player initializing...');
     
     
-    // Get episode data
+    // Get episode data (try JSON injection first, otherwise build from DOM)
     const episodeDataScript = document.getElementById('episode-data');
-    const episodeData = episodeDataScript ? JSON.parse(episodeDataScript.textContent) : { chapters: [] };
-    
+    let episodeData = episodeDataScript ? JSON.parse(episodeDataScript.textContent) : null;
+
+    if (!episodeData) {
+      // Fallback: assemble chapters from rendered chapter buttons in the DOM
+      const chapterBtns = document.querySelectorAll('.chapter-button');
+      const chaptersFromDom = Array.from(chapterBtns).map((btn) => ({
+        title: (btn.textContent || '').trim().split('\n')[0].trim(),
+        startTime: btn.dataset.startTime || btn.getAttribute('data-start-time') || '0:00',
+        endTime: btn.dataset.endTime || btn.getAttribute('data-end-time') || '',
+        description: (btn.querySelector && btn.querySelector('.chapter-description')) ? btn.querySelector('.chapter-description').textContent.trim() : ''
+      }));
+
+      episodeData = { chapters: chaptersFromDom };
+    }
+
     console.log('Episode data loaded:', episodeData);
     
     // Transcript parsing function
@@ -119,12 +132,16 @@ function formatTimestamp(seconds) {
 
     //Identify Current Chapter Based on Playback Position
     const chapterButtons = document.querySelectorAll('.chapter-button');
-    const chapters = [...chapterButtons].map(btn => ({
-      title: btn.textContent.trim(),
-      start: parseTimestamp(btn.dataset.startTime),
-      end: parseTimestamp(btn.dataset.endTime),
-      })); 
+    const chapters = episodeData.chapters.map((chapter) => ({
+      title: chapter.title,
+      start: parseTimestamp(chapter.startTime),
+      end: parseTimestamp(chapter.endTime),
+      interludeTracks: chapter.interludeTracks || [],
+    }));
+    
+   
 
+      
   
 // Audio Player Controls
 function updateAudioPlayPauseUI() {
@@ -135,6 +152,7 @@ function updateAudioPlayPauseUI() {
   }
 }
     if (audio) {
+      console.log('Debug: audio exists, attaching audio handlers');
       if (duration) {
         audio.addEventListener('loadedmetadata', function() {
           duration.textContent = formatTime(audio.duration);
@@ -151,8 +169,21 @@ function updateAudioPlayPauseUI() {
     updateAudioPlayPauseUI();
   });
 }
+
+//Timeupdate Function
       let lastChapterIndex = -1;
       audio.addEventListener('timeupdate', function() {
+        // One-time debug dump to inspect chapter boundaries vs playback time
+        if (!window._chapterDebugLogged) {
+          try {
+            console.log('Chapter debug: parsed chapters count =', chapters.length);
+            console.log('Chapter debug: chapters (first 10) =', chapters.slice(0, 10));
+            console.log('Chapter debug: current audio time (s) =', audio.currentTime);
+          } catch (e) {
+            console.warn('Chapter debug dump failed', e);
+          }
+          window._chapterDebugLogged = true;
+        }
         if (audio.duration && seekBar) {
           var value = (audio.currentTime / audio.duration) * 100;
           seekBar.value = value;
@@ -172,10 +203,16 @@ function updateAudioPlayPauseUI() {
         } else {
           console.log("Out of Chapter");
         }
-        lastChapterIndex = currentChapterIndex; // <- update correctly
+        if (lastChapterIndex !== -1) {
+      const endedChapter = chapters[lastChapterIndex];
+      console.log(`Chapter ${lastChapterIndex + 1} ended at ${formatTime(endedChapter.end)}`);
+        }
+      lastChapterIndex = currentChapterIndex; // <- update correctly
       }
 
-      });
+  });
+  // Confirm that the timeupdate listener registration code ran
+  console.log('Debug: timeupdate handler registered for mainAudio');
 
       // Seekbar for Audio Playback
       if (seekBar) {
