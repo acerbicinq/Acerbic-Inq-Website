@@ -1,8 +1,6 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { client, urlFor } from "../lib/sanity";
-import SettingsPanel from "../components/SettingsPanel.jsx";
-import ToneAudioPlayer from "../components/ToneAudioPlayer.jsx";
 
 const pageTitle = "Music";
 
@@ -36,7 +34,7 @@ const musicPosts = await client.fetch(`
 
 <BaseLayout pageTitle={pageTitle}>
   <div class="music-container">
-    <h1>My Music</h1>
+    
     <p>Welcome to my musical journey. Here you'll find my original songs, albums, and creative works.</p>
     
     {musicPosts.length === 0 ? (
