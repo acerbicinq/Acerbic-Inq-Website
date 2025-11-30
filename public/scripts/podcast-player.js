@@ -148,6 +148,8 @@ function formatTimestamp(seconds) {
       start: parseTimestamp(chapter.startTime),
       end: parseTimestamp(chapter.endTime),
       interludeTracks: chapter.interludeTracks || [],
+      interludeAnnounced: chapter.interludeAnnounced || false,
+      interludePlayed: chapter.interludePlayed || false
     }));
     
    
@@ -181,31 +183,30 @@ function updateAudioPlayPauseUI() {
   });
 }
 
-//Get Youtube URLS from Interlude Tracks
-function extractVideoId(url) {
-  if (!url) return null;
-
-  // Standard watch URL
-  let match = url.match(/v=([\w-]+)/);
-  if (match) return match[1];
-
-  // Shortened youtu.be URL
-  match = url.match(/youtu\.be\/([\w-]+)/);
-  if (match) return match[1];
-
-  // Embed URL
-  match = url.match(/embed\/([\w-]+)/);
-  if (match) return match[1];
-
+// Return a fallback audio URL for a track (prefer explicit fallbackAudio, then track.url)
+function getFallbackAudioUrlFromTrack(track) {
+  if (!track) return null;
+  const fallback = track.fallbackAudio && track.fallbackAudio.asset && track.fallbackAudio.asset.url;
+  if (fallback) return fallback;
+  if (track.url) return track.url;
   return null;
 }
 
-//Interludes Auto-Play Functionality
-const interludeAudio = document.getElementById("interlude-audio");
-const ytPlayer = document.getElementById("yt-audio");
+
+
+
+
+
+
+// Interludes Auto-Play Functionality (fallback-audio only)
+const interludeAudio = document.getElementById('interlude-audio');
 function playInterludes(interludeTracks, resumeTime) {
   if (!interludeTracks || interludeTracks.length === 0) {
-    console.warn("No interludes to play.");
+    console.warn('No interludes to play.');
+    if (audio) {
+      audio.currentTime = resumeTime;
+      audio.play();
+    }
     return;
   }
 
@@ -213,46 +214,33 @@ function playInterludes(interludeTracks, resumeTime) {
 
   function playNext() {
     if (index >= interludeTracks.length) {
-      console.log("All interludes finished. Resuming main audio.");
-      audio.currentTime = resumeTime;
-      audio.play();
+      console.log('All interludes finished. Resuming main audio.');
+      if (audio) {
+        audio.currentTime = resumeTime;
+        audio.play();
+      }
       return;
     }
 
     const track = interludeTracks[index];
-    console.log("Playing interlude:", track);
+    console.log('Playing interlude (fallback audio only):', track);
 
-    // --- YouTube first ---
-    if (track.url) {
-      const videoId = extractVideoId(track.url);
-      if (videoId) {
-        ytPlayer.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&enablejsapi=1`;
-        ytPlayer.style.display = "block";
-
-
-        // Rough duration-based fallback (since we aren't using YouTube API)
-        const durationSec = track.duration ? parseTime(track.duration) : 30;
-        setTimeout(() => {
-          index++;
-          playNext();
-        }, durationSec * 1000);
-
-        return; // stop here, don’t fall back to audio
-      }
-    }
-
-    // --- Fallback audio if no YouTube ---
-    if (track.fallbackAudio?.asset?.url) {
-      interludeAudio.src = track.fallbackAudio.asset.url;
-      interludeAudio.play();
+    const url = getFallbackAudioUrlFromTrack(track);
+    if (url && interludeAudio) {
+      interludeAudio.src = url;
+      interludeAudio.play().catch((err) => {
+        console.warn('Interlude audio play failed:', err);
+        index++;
+        playNext();
+      });
       interludeAudio.onended = () => {
         index++;
         playNext();
       };
     } else {
-      console.warn("No playable audio for this track:", track);
+      console.warn('No playable fallback audio for this track:', track);
       index++;
-      playNext();
+      setTimeout(playNext, 200);
     }
   }
 
@@ -260,11 +248,7 @@ function playInterludes(interludeTracks, resumeTime) {
 }
 
 
-// Helper to parse "mm:ss" into seconds
-function parseTime(timeStr) {
-  const parts = timeStr.split(":").map(Number);
-  return parts.length === 2 ? parts[0] * 60 + parts[1] : parts[0];
-}
+
 
 
 

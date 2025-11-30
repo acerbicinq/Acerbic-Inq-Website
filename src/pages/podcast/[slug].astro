@@ -233,152 +233,14 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
               <span class="duration-info"> ({track.duration})</span>
             )}
           </div>
-
-          {/* Streaming Options */}
-          <div class="streaming-options">
-            {track.streamingLinks
-              ?.filter(link => link.platform !== "spotify")
-              .map((link, linkIndex) => (
-                <div
-                  class="streaming-option"
-                  data-platform={link.platform}
-                  key={linkIndex}
-                >
-                  {link.platform === "youtube-music" &&
-                    (link.url || link.embedCode) && (
-                      <div
-                        class="youtube-embed-container"
-                        data-youtube-url={
-                          link.url ||
-                          (link.embedCode
-                            ? link.embedCode.match(/src="([^"]*)"/)?.[1] || ""
-                            : "")
-                        }
-                        data-track-title={track.songTitle}
-                        data-track-artist={track.artist}
-                      >
-                        
-                      </div>
-                    )}
-                </div>
-              ))}
-          </div>
-          {/* END streaming-options */}
-
         </div>
       ))}
     </div>
   </div>
 ))}
-<!--Youtube Iframe - Keep Global so JS can utilize -->
-<div class="youtube-placeholder">
-                          <div class="youtube-placeholder-content">
-                            <iframe id="yt-audio" width="1" height="1"
-                                src=""
-                                allow="autoplay"></iframe>
-                            <span class="youtube-icon">▶</span>
-                            <audio id="interlude-audio" class="fallback-audio hidden"></audio>
-                          </div>
-                        </div>
+<audio id="interlude-audio" class="fallback-audio hidden"></audio>
 
-    <!-- Chapters -->
-    {episode.chapters && episode.chapters.length > 0 && (
-      <div class="chapters-section">
-
-        <h2>Chapters</h2>
-        <div class="chapters-list">
-          {episode.chapters.map((chapter, index) => (
-            <div class="chapter-item" data-chapter={index}>
-              <div class="chapter-status">
-                <span class="chapter-number">{index + 1}</span>
-                <div class="chapter-progress">
-                  <div class="progress-bar">
-                    <div class="progress-fill" data-chapter-index={index}></div>
-                  </div>
-                </div>
-              </div>
-              
-              <div class="chapter-info">
-                <h3 class="chapter-title">{chapter.title}</h3>
-                <div class="chapter-time">
-                  <span class="time-range">{chapter.startTime} - {chapter.endTime}</span>
-                </div>
-                <!-- Make Chapter Description into a tooltip: https://www.w3schools.com/howto/howto_css_tooltip.asp  -->
-                {chapter.description && (
-                  <p class="chapter-description">{chapter.description}</p>
-                )}
-                
-                {/* Interlude Tracks */}
-                {chapter.interludeTracks && chapter.interludeTracks.length > 0 && (
-                  <div class="interlude-section">
-                    <h4 class="interlude-title">🎵 Interlude Music</h4>
-                    <div class="interlude-tracks" id={`interlude-tracks-${index}`}>
-                      {chapter.interludeTracks.map((track, trackIndex) => (
-                        <div class="interlude-track" data-track-index={trackIndex}>
-                          <div class="track-info">
-                            <strong>{track.songTitle}</strong> by {track.artist}
-                            {track.duration && <span class="duration-info"> ({track.duration})</span>}
-                          </div>
-                          
-                          <div class="streaming-options">
-                            {track.streamingLinks?.filter(link => link.platform !== 'spotify').map((link, linkIndex) => (
-                              <div class="streaming-option" data-platform={link.platform}>
-                                {link.platform === 'youtube-music' && (link.url || link.embedCode) && (
-                                  <div class="youtube-embed-container" 
-                                       data-youtube-url={link.url || (link.embedCode ? link.embedCode.match(/src="([^"]*)"/) ? link.embedCode.match(/src="([^"]*)"/)[1] : '' : '')} 
-                                       data-track-title={track.title || track.songTitle} 
-                                       data-track-artist={track.artist}>
-                                    {/* Show placeholder in audio mode, YouTube player will replace this in video mode during interludes */}
-                                    <div class="youtube-placeholder">
-                                      <div class="youtube-placeholder-content">
-                                        <span class="youtube-icon">▶</span>
-                                        <p>YouTube video will play here during interludes in video mode</p>
-                                        <small>Track: {track.title || track.songTitle} by {track.artist}</small>
-                                      </div>
-                                    </div>
-                                  </div>
-                                )}
-                                
-                                <a 
-                                  href={link.url} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer"
-                                  class="external-link"
-                                >
-                                  Open in {link.platform === 'youtube-music' ? 'YouTube Music' : 
-                                           link.platform === 'apple-music' ? 'Apple Music' :
-                                           link.platform.charAt(0).toUpperCase() + link.platform.slice(1)}
-                                </a>
-                              </div>
-                            ))}
-                          </div>
-                          
-                          {/* Fallback Audio Player */}
-                          {track.fallbackAudio && (
-                            <div class="fallback-audio-section">
-                              <h5>🎧 Fallback Player:</h5>
-                              <audio controls preload="metadata" crossorigin="anonymous">
-                                <source src={track.fallbackAudio.asset?.url} type="audio/mpeg" />
-                                Your browser does not support the audio element.
-                              </audio>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-              
-              <button class="jump-to-chapter" data-start-time={chapter.startTime}>
-                ▶ Jump to Chapter
-              </button>
-            </div>
-          ))}
-        </div>
-      </div>
-    )}
-
+    
 
     <!-- Guest Info -->
     {episode.guest && (
@@ -475,6 +337,7 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
   </div>
   <script id="episode-data" type="application/json" set:html={JSON.stringify(episode)}></script>
   <script type="module" src="/scripts/podcast-player.js"></script>
+  
 </BaseLayout>
 
 
