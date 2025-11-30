@@ -29,14 +29,25 @@ function formatTimestamp(seconds) {
         title: (btn.textContent || '').trim().split('\n')[0].trim(),
         startTime: btn.dataset.startTime || btn.getAttribute('data-start-time') || '0:00',
         endTime: btn.dataset.endTime || btn.getAttribute('data-end-time') || '',
-        description: (btn.querySelector && btn.querySelector('.chapter-description')) ? btn.querySelector('.chapter-description').textContent.trim() : ''
+        description: (btn.querySelector && btn.querySelector('.chapter-description')) ? btn.querySelector('.chapter-description').textContent.trim() : '',
+        interludeTracks: [],
+        interludeAnnounced: false,   // <- initialize here
+        interludePlayed: false  
       }));
 
       episodeData = { chapters: chaptersFromDom };
     }
 
     console.log('Episode data loaded:', episodeData);
-    
+    episodeData.chapters.forEach((c, i) => {
+  console.log(`CHAPTER ${i+1}:`, {
+    title: c.title,
+    interludeTracks: c.interludeTracks,
+    type: typeof c.interludeTracks
+  });
+});
+
+
     // Transcript parsing function
     function parseTranscriptText() {
       const transcriptText = episodeData.transcriptText;
@@ -152,7 +163,7 @@ function updateAudioPlayPauseUI() {
   }
 }
     if (audio) {
-      console.log('Debug: audio exists, attaching audio handlers');
+      
       if (duration) {
         audio.addEventListener('loadedmetadata', function() {
           duration.textContent = formatTime(audio.duration);
@@ -169,6 +180,99 @@ function updateAudioPlayPauseUI() {
     updateAudioPlayPauseUI();
   });
 }
+
+//Get Youtube URLS from Interlude Tracks
+function extractVideoId(url) {
+  if (!url) return null;
+
+  // Standard watch URL
+  let match = url.match(/v=([\w-]+)/);
+  if (match) return match[1];
+
+  // Shortened youtu.be URL
+  match = url.match(/youtu\.be\/([\w-]+)/);
+  if (match) return match[1];
+
+  // Embed URL
+  match = url.match(/embed\/([\w-]+)/);
+  if (match) return match[1];
+
+  return null;
+}
+
+//Interludes Auto-Play Functionality
+const interludeAudio = document.getElementById("interlude-audio");
+const ytPlayer = document.getElementById("yt-audio");
+function playInterludes(interludeTracks, resumeTime) {
+  if (!interludeTracks || interludeTracks.length === 0) {
+    console.warn("No interludes to play.");
+    return;
+  }
+
+  let index = 0;
+
+  function playNext() {
+    if (index >= interludeTracks.length) {
+      console.log("All interludes finished. Resuming main audio.");
+      audio.currentTime = resumeTime;
+      audio.play();
+      return;
+    }
+
+    const track = interludeTracks[index];
+    console.log("Playing interlude:", track);
+
+    // --- YouTube first ---
+    if (track.url) {
+      const videoId = extractVideoId(track.url);
+      if (videoId) {
+        ytPlayer.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&enablejsapi=1`;
+        ytPlayer.style.display = "block";
+
+
+        // Rough duration-based fallback (since we aren't using YouTube API)
+        const durationSec = track.duration ? parseTime(track.duration) : 30;
+        setTimeout(() => {
+          index++;
+          playNext();
+        }, durationSec * 1000);
+
+        return; // stop here, don’t fall back to audio
+      }
+    }
+
+    // --- Fallback audio if no YouTube ---
+    if (track.fallbackAudio?.asset?.url) {
+      interludeAudio.src = track.fallbackAudio.asset.url;
+      interludeAudio.play();
+      interludeAudio.onended = () => {
+        index++;
+        playNext();
+      };
+    } else {
+      console.warn("No playable audio for this track:", track);
+      index++;
+      playNext();
+    }
+  }
+
+  playNext();
+}
+
+
+// Helper to parse "mm:ss" into seconds
+function parseTime(timeStr) {
+  const parts = timeStr.split(":").map(Number);
+  return parts.length === 2 ? parts[0] * 60 + parts[1] : parts[0];
+}
+
+
+
+
+
+
+
+
 
 //Timeupdate Function
       let lastChapterIndex = -1;
@@ -206,11 +310,39 @@ function updateAudioPlayPauseUI() {
         if (lastChapterIndex !== -1) {
       const endedChapter = chapters[lastChapterIndex];
       console.log(`Chapter ${lastChapterIndex + 1} ended at ${formatTime(endedChapter.end)}`);
-        }
-      lastChapterIndex = currentChapterIndex; // <- update correctly
-      }
+      if (endedChapter.interludeTracks.length > 0 && !endedChapter.interludeAnnounced) {
+      console.log(
+        `Interlude(s) available:`,
+      endedChapter.interludeTracks.map(t => t.songTitle).join(", ")
+      );
 
-  });
+      
+  endedChapter.interludeAnnounced = true;
+}
+     // ---------------------------
+            // NOW the autoplay goes here
+            // ---------------------------
+
+            
+
+            if (
+                endedChapter.interludeTracks.length > 0 &&
+                !endedChapter.interludePlayed
+            ) {
+                endedChapter.interludePlayed = true; // prevent double play
+                console.log("AUTO-PLAYING INTERLUDES:", endedChapter.interludeTracks);
+
+                audio.pause();
+                playInterludes(endedChapter.interludeTracks, endedChapter.end);
+            }
+
+        } // <-- closes "lastChapterIndex !== -1"
+
+        lastChapterIndex = currentChapterIndex;
+    }
+});
+
+
   // Confirm that the timeupdate listener registration code ran
   console.log('Debug: timeupdate handler registered for mainAudio');
 

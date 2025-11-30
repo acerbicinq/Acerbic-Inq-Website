@@ -187,27 +187,99 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
 <div class="chapters-scroller">
   <div class="chapters-track">
     {episode.chapters.map((chapter, index) => (
-      <>
+      <div class="chapter-block">
+        <!-- Chapter Button -->
         <button 
           class="chapter-button" 
+          data-chapter-index={index}
           data-start-time={chapter.startTime}
           data-end-time={chapter.endTime}
         >
           {index + 1}. {chapter.title} ({chapter.startTime})
-                          {chapter.description && (
-                  <p class="chapter-description hidden">{chapter.description}</p>
-                )}
+          {chapter.description && (
+            <p class="chapter-description hidden">{chapter.description}</p>
+          )}
         </button>
 
-        {/* Optional interlude indicator */}
+        {/* Optional interlude indicator and tracks */}
         {chapter.interludeTracks && chapter.interludeTracks.length > 0 && (
-          <button class="interlude-button">Interlude</button>
-          <audio id="interlude-audio" style="display:none;"></audio>
-        )}
-      </>
+          
+            <button 
+            class="interlude-button"
+            data-chapter-index={index}
+            >
+              Interlude
+              </button>
+            )}
+       
+      </div>
     ))}
   </div>
 </div>
+
+{/* Interlude Track Info */}
+{episode.chapters.map((chapter, index) => (
+  <div class="interlude-info hidden" id={`interlude-tracks-${index}`}>
+    <h4 class="interlude-title">Interlude Tracks</h4>
+
+    <div class="interlude-tracks">
+      {chapter.interludeTracks?.map((track, trackIndex) => (
+        <div class="interlude-track" data-track-index={trackIndex}>
+          
+          {/* Track Title / Artist */}
+          <div class="track-info">
+            <strong>{track.songTitle}</strong> by {track.artist}
+            {track.duration && (
+              <span class="duration-info"> ({track.duration})</span>
+            )}
+          </div>
+
+          {/* Streaming Options */}
+          <div class="streaming-options">
+            {track.streamingLinks
+              ?.filter(link => link.platform !== "spotify")
+              .map((link, linkIndex) => (
+                <div
+                  class="streaming-option"
+                  data-platform={link.platform}
+                  key={linkIndex}
+                >
+                  {link.platform === "youtube-music" &&
+                    (link.url || link.embedCode) && (
+                      <div
+                        class="youtube-embed-container"
+                        data-youtube-url={
+                          link.url ||
+                          (link.embedCode
+                            ? link.embedCode.match(/src="([^"]*)"/)?.[1] || ""
+                            : "")
+                        }
+                        data-track-title={track.songTitle}
+                        data-track-artist={track.artist}
+                      >
+                        
+                      </div>
+                    )}
+                </div>
+              ))}
+          </div>
+          {/* END streaming-options */}
+
+        </div>
+      ))}
+    </div>
+  </div>
+))}
+<!--Youtube Iframe - Keep Global so JS can utilize -->
+<div class="youtube-placeholder">
+                          <div class="youtube-placeholder-content">
+                            <iframe id="yt-audio" width="1" height="1"
+                                src=""
+                                allow="autoplay"></iframe>
+                            <span class="youtube-icon">▶</span>
+                            <audio id="interlude-audio" class="fallback-audio hidden"></audio>
+                          </div>
+                        </div>
 
     <!-- Chapters -->
     {episode.chapters && episode.chapters.length > 0 && (
@@ -401,7 +473,7 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
     </nav>
 
   </div>
-
+  <script id="episode-data" type="application/json" set:html={JSON.stringify(episode)}></script>
   <script type="module" src="/scripts/podcast-player.js"></script>
 </BaseLayout>
 

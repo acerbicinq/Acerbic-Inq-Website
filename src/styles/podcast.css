@@ -130,6 +130,39 @@
   box-shadow: var(--text-color) -1px -1px;
 }
 
+.chapter-button,
+.interlude-button {
+    /* Default stacked appearance for non-scroller contexts */
+    display: block;
+    background-color: var(--btn-bg-color);
+    color: var(--text-color);
+    border: 1px solid var(--text-color);
+    padding: 10px 20px;
+    cursor: pointer;
+    border-radius: 2px;
+    margin: 0.5em 0;
+    box-shadow: var(--text-color) 1px 1px;
+}
+
+/* Horizontal side-scroller for chapters */
+.chapters-scroller {
+  width: 100%;
+  overflow: scroll;
+}
+.chapters-scroller .chapters-track {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 1rem;
+  white-space: nowrap;
+}
+
+.chapter-block {
+  display: inline-flex;
+}
+
 /*Trancript Controls Styling*/
 .transcript-toggle-btn {
     background-color: var(--btn-bg-color);
