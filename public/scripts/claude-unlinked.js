@@ -44,8 +44,9 @@
       return 0;
     }
     
-    // Seamless Audio Playback System
-    const ENABLE_SEAMLESS_INTERLUDES = true; // Set to true to enable seamless interludes
+  // Seamless Audio Playback System
+  // Interlude system disabled: set flag to false to avoid auto-playing interludes on chapter end.
+  const ENABLE_SEAMLESS_INTERLUDES = false; // Disabled by site decision
     let isPlayingInterlude = false;
     let interludeQueue = [];
     let currentInterludeIndex = 0;
@@ -933,8 +934,14 @@
   }
 
   // Make functions globally available
-  window.playYouTubeInterlude = playYouTubeInterlude;
-  window.stopYouTubeInterlude = stopYouTubeInterlude;
+  // Provide safe no-op fallbacks when interludes are disabled so legacy callers don't throw.
+  window.playYouTubeInterlude = async function(track) {
+    console.log('playYouTubeInterlude called but interludes are disabled.');
+    return Promise.resolve();
+  };
+  window.stopYouTubeInterlude = function() {
+    console.log('stopYouTubeInterlude called but interludes are disabled.');
+  };
   window.youtubeInterludeSystem = youtubeInterludeSystem;
 
   // Initialize YouTube system

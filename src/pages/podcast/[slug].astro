@@ -201,16 +201,7 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
           )}
         </button>
 
-        {/* Optional interlude indicator and tracks */}
-        {chapter.interludeTracks && chapter.interludeTracks.length > 0 && (
-          
-            <button 
-            class="interlude-button"
-            data-chapter-index={index}
-            >
-              Interlude
-              </button>
-            )}
+        
        
       </div>
     ))}
@@ -242,26 +233,7 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
 
     
 
-    <!-- Guest Info -->
-    {episode.guest && (
-      <div class="guest-section">
-        <h2>Guest: {episode.guest.name}</h2>
-        {episode.guest.bio && <p>{episode.guest.bio}</p>}
-        
-        <div class="guest-links">
-          {episode.guest.website && (
-            <a href={episode.guest.website} target="_blank" rel="noopener noreferrer">
-              Website
-            </a>
-          )}
-          {episode.guest.social?.map((social) => (
-            <a href={social.url} target="_blank" rel="noopener noreferrer">
-              {social.platform.charAt(0).toUpperCase() + social.platform.slice(1)}
-            </a>
-          ))}
-        </div>
-      </div>
-    )}
+
 
 <!-- Episode Meta -->
   <div class="episode-meta">
@@ -279,19 +251,6 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
             ))}
           </div>
         )}
-
-    <!-- Show Notes -->
-    {episode.showNotes && (
-      <div class="show-notes-section">
-        <h2>Show Notes</h2>
-        <div class="show-notes-content">
-          <!-- Rich text content would need a component to render properly -->
-          <div class="rich-text-placeholder">
-            [Show notes content would be rendered here]
-          </div>
-        </div>
-      </div>
-    )}
 
     <!-- Transcript Section -->
     {episode.transcript && (episode.transcript.transcriptData || episode.transcript.transcriptFile) && (
@@ -324,10 +283,40 @@ const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
       </div>
     )}
 
-    <!-- Video Subtitle Overlay (Video Mode) -->
-    <div id="subtitle-overlay" class="subtitle-overlay">
-      <div class="subtitle-text"></div>
-    </div>
+    <!-- Show Notes -->
+    {episode.showNotes && (
+      <div class="show-notes-section">
+        <h2>Show Notes</h2>
+        <div class="show-notes-content">
+          <!-- Rich text content would need a component to render properly -->
+          <div class="rich-text-placeholder">
+            [Show notes content would be rendered here]
+          </div>
+        </div>
+      </div>
+    )}
+
+        <!-- Guest Info -->
+    {episode.guest && (
+      <div class="guest-section">
+        <h2>Guest: {episode.guest.name}</h2>
+        {episode.guest.bio && <p>{episode.guest.bio}</p>}
+        
+        <div class="guest-links">
+          {episode.guest.website && (
+            <a href={episode.guest.website} target="_blank" rel="noopener noreferrer">
+              Website
+            </a>
+          )}
+          {episode.guest.social?.map((social) => (
+            <a href={social.url} target="_blank" rel="noopener noreferrer">
+              {social.platform.charAt(0).toUpperCase() + social.platform.slice(1)}
+            </a>
+          ))}
+        </div>
+      </div>
+    )}
+   
 
     <!-- Navigation -->
     <nav class="episode-navigation">

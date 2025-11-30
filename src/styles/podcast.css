@@ -179,6 +179,40 @@ padding: 0 0.5em;
 margin: 3px;
 }
 
+/* Transcript line layout: timestamp + text */
+.transcript-line {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: 0.25rem 0;
+  border-bottom: 1px dashed rgba(0,0,0,0.03);
+}
+
+.transcript-timestamp {
+  color: var(--text-color);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  min-width: 3.5rem; /* keeps timestamps aligned */
+  text-align: right;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+}
+
+.transcript-timestamp:focus {
+  outline: 2px solid rgba(59, 130, 246, 0.5);
+  border-radius: 3px;
+}
+
+.transcript-timestamp:hover {
+  color: var(--h1-bg-color);
+}
+
+.transcript-text {
+  flex: 1 1 auto;
+  color: var(--text-color);
+}
+
 /* CROSS-BROWSER COMPATABILITY - START */
 /* Cross Browswer Compatability with Media Players */
 /* Removes Default Audio Player Styling Across All Browsers */

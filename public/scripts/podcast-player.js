@@ -13,6 +13,30 @@ function formatTimestamp(seconds) {
   }
 }
 
+// Format for transcript timestamps per user rules:
+// - before 10 minutes: 0:00 (M:SS)
+// - 10 minutes until 59:59: 00:00 (MM:SS)
+// - 1:00:00 and above: 0:00:00 (H:MM:SS)
+function formatTranscriptTimestamp(seconds) {
+  seconds = Math.floor(Number(seconds) || 0);
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+
+  if (h >= 1) {
+    // H:MM:SS (no leading zeros for hours)
+    return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  }
+
+  if (m >= 10) {
+    // MM:SS with leading zero for minutes
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  }
+
+  // M:SS (no leading zero for minutes under 10)
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
 
   document.addEventListener('DOMContentLoaded', function() {
     console.log('Phase 1 Podcast player initializing...');
@@ -29,10 +53,7 @@ function formatTimestamp(seconds) {
         title: (btn.textContent || '').trim().split('\n')[0].trim(),
         startTime: btn.dataset.startTime || btn.getAttribute('data-start-time') || '0:00',
         endTime: btn.dataset.endTime || btn.getAttribute('data-end-time') || '',
-        description: (btn.querySelector && btn.querySelector('.chapter-description')) ? btn.querySelector('.chapter-description').textContent.trim() : '',
-        interludeTracks: [],
-        interludeAnnounced: false,   // <- initialize here
-        interludePlayed: false  
+        description: (btn.querySelector && btn.querySelector('.chapter-description')) ? btn.querySelector('.chapter-description').textContent.trim() : ''
       }));
 
       episodeData = { chapters: chaptersFromDom };
@@ -40,12 +61,8 @@ function formatTimestamp(seconds) {
 
     console.log('Episode data loaded:', episodeData);
     episodeData.chapters.forEach((c, i) => {
-  console.log(`CHAPTER ${i+1}:`, {
-    title: c.title,
-    interludeTracks: c.interludeTracks,
-    type: typeof c.interludeTracks
-  });
-});
+      console.log(`CHAPTER ${i+1}:`, { title: c.title });
+    });
 
 
     // Transcript parsing function
@@ -144,13 +161,21 @@ function formatTimestamp(seconds) {
     //Identify Current Chapter Based on Playback Position
     const chapterButtons = document.querySelectorAll('.chapter-button');
     const chapters = episodeData.chapters.map((chapter) => ({
-      title: chapter.title,
-      start: parseTimestamp(chapter.startTime),
-      end: parseTimestamp(chapter.endTime),
-      interludeTracks: chapter.interludeTracks || [],
-      interludeAnnounced: chapter.interludeAnnounced || false,
-      interludePlayed: chapter.interludePlayed || false
+      title: chapter.title || '',
+      start: parseTimestamp(chapter.startTime || '0:00') || 0,
+      end: parseTimestamp(chapter.endTime || '') || NaN
     }));
+
+    // Normalize end times: if end is missing or <= start, use next chapter start or Infinity for the last chapter.
+    for (let i = 0; i < chapters.length; i++) {
+      const ch = chapters[i];
+      if (!Number.isFinite(ch.end) || ch.end <= ch.start) {
+        const next = chapters[i + 1];
+        ch.end = next ? next.start : Number.POSITIVE_INFINITY;
+      }
+    }
+
+    // Interlude buttons intentionally removed — interlude functionality disabled.
     
    
 
@@ -183,71 +208,6 @@ function updateAudioPlayPauseUI() {
   });
 }
 
-// Return a fallback audio URL for a track (prefer explicit fallbackAudio, then track.url)
-function getFallbackAudioUrlFromTrack(track) {
-  if (!track) return null;
-  const fallback = track.fallbackAudio && track.fallbackAudio.asset && track.fallbackAudio.asset.url;
-  if (fallback) return fallback;
-  if (track.url) return track.url;
-  return null;
-}
-
-
-
-
-
-
-
-// Interludes Auto-Play Functionality (fallback-audio only)
-const interludeAudio = document.getElementById('interlude-audio');
-function playInterludes(interludeTracks, resumeTime) {
-  if (!interludeTracks || interludeTracks.length === 0) {
-    console.warn('No interludes to play.');
-    if (audio) {
-      audio.currentTime = resumeTime;
-      audio.play();
-    }
-    return;
-  }
-
-  let index = 0;
-
-  function playNext() {
-    if (index >= interludeTracks.length) {
-      console.log('All interludes finished. Resuming main audio.');
-      if (audio) {
-        audio.currentTime = resumeTime;
-        audio.play();
-      }
-      return;
-    }
-
-    const track = interludeTracks[index];
-    console.log('Playing interlude (fallback audio only):', track);
-
-    const url = getFallbackAudioUrlFromTrack(track);
-    if (url && interludeAudio) {
-      interludeAudio.src = url;
-      interludeAudio.play().catch((err) => {
-        console.warn('Interlude audio play failed:', err);
-        index++;
-        playNext();
-      });
-      interludeAudio.onended = () => {
-        index++;
-        playNext();
-      };
-    } else {
-      console.warn('No playable fallback audio for this track:', track);
-      index++;
-      setTimeout(playNext, 200);
-    }
-  }
-
-  playNext();
-}
-
-
 
 
 
@@ -265,8 +225,6 @@ function playInterludes(interludeTracks, resumeTime) {
         if (!window._chapterDebugLogged) {
           try {
             console.log('Chapter debug: parsed chapters count =', chapters.length);
-            console.log('Chapter debug: chapters (first 10) =', chapters.slice(0, 10));
-            console.log('Chapter debug: current audio time (s) =', audio.currentTime);
           } catch (e) {
             console.warn('Chapter debug dump failed', e);
           }
@@ -280,51 +238,25 @@ function playInterludes(interludeTracks, resumeTime) {
         if (duration) duration.textContent = formatTime(audio.duration);
 
     //Chapter Detection
-    const current = Math.floor(audio.currentTime);
-      const currentChapterIndex = chapters.findIndex(ch =>
-          current >= ch.start && current < ch.end
-        );
+      const current = Math.floor(audio.currentTime || 0);
+      const currentChapterIndex = chapters.findIndex(ch => current >= ch.start && current < ch.end);
 
-        if (currentChapterIndex !== lastChapterIndex) {
+      if (currentChapterIndex !== lastChapterIndex) {
         if (currentChapterIndex !== -1) {
           console.log("You're in chapter:", currentChapterIndex + 1);
         } else {
           console.log("Out of Chapter");
         }
+
         if (lastChapterIndex !== -1) {
-      const endedChapter = chapters[lastChapterIndex];
-      console.log(`Chapter ${lastChapterIndex + 1} ended at ${formatTime(endedChapter.end)}`);
-      if (endedChapter.interludeTracks.length > 0 && !endedChapter.interludeAnnounced) {
-      console.log(
-        `Interlude(s) available:`,
-      endedChapter.interludeTracks.map(t => t.songTitle).join(", ")
-      );
-
-      
-  endedChapter.interludeAnnounced = true;
-}
-     // ---------------------------
-            // NOW the autoplay goes here
-            // ---------------------------
-
-            
-
-            if (
-                endedChapter.interludeTracks.length > 0 &&
-                !endedChapter.interludePlayed
-            ) {
-                endedChapter.interludePlayed = true; // prevent double play
-                console.log("AUTO-PLAYING INTERLUDES:", endedChapter.interludeTracks);
-
-                audio.pause();
-                playInterludes(endedChapter.interludeTracks, endedChapter.end);
-            }
-
-        } // <-- closes "lastChapterIndex !== -1"
+          const endedChapter = chapters[lastChapterIndex];
+          const endedAt = Number.isFinite(endedChapter.end) ? formatTime(endedChapter.end) : 'end';
+          console.log(`Chapter ${lastChapterIndex + 1} ended at ${endedAt}`);
+        }
 
         lastChapterIndex = currentChapterIndex;
-    }
-});
+      }
+    });
 
 
   // Confirm that the timeupdate listener registration code ran
@@ -346,6 +278,208 @@ function playInterludes(interludeTracks, resumeTime) {
           audio.volume = volumeControl.value;
         });
       }
+
+// Transcript toggle button (Show Transcript / Hide Transcript)
+      try {
+        const transcriptToggleBtn = document.getElementById('transcript-toggle');
+        const transcriptContainer = document.getElementById('transcript-container');
+
+        if (transcriptToggleBtn && transcriptContainer) {
+          const transcriptContentEl = document.getElementById('transcript-content') || transcriptContainer;
+          console.log('Transcript toggle wired:', { transcriptToggleBtn: !!transcriptToggleBtn, transcriptContainer: !!transcriptContainer, transcriptContentEl: !!transcriptContentEl });
+          // Render transcript defensively and emit separate timestamp elements for styling/click-to-seek
+          function renderTranscript() {
+            try {
+              if (!episodeData) return;
+
+              // Clear existing content (prefer inner content element when present)
+              transcriptContentEl.textContent = '';
+
+              // Helper to append a single structured line: <div.transcript-line>
+              //   <time.transcript-timestamp data-seconds="...">0:03</time>
+              //   <span.transcript-text>text...</span>
+              // If seconds is null, we omit the <time> element and render only the text.
+              function addLine(seconds, text) {
+                try {
+                  const wrap = document.createElement('div');
+                  wrap.className = 'transcript-line';
+
+                  const safeText = (text || '').toString();
+
+                  if (Number.isFinite(seconds)) {
+                    const ts = document.createElement('time');
+                    ts.className = 'transcript-timestamp';
+                    ts.dataset.seconds = String(Math.floor(seconds));
+                    ts.setAttribute('datetime', `PT${Math.floor(seconds)}S`);
+                    ts.textContent = formatTranscriptTimestamp(seconds);
+                    // Click to seek
+                    ts.addEventListener('click', () => {
+                      try {
+                        if (audio) {
+                          audio.currentTime = Number(ts.dataset.seconds);
+                          audio.play();
+                        }
+                      } catch (e) {
+                        console.warn('Failed to seek audio from transcript timestamp', e);
+                      }
+                    });
+                    // Keyboard accessibility (Enter / Space)
+                    ts.tabIndex = 0;
+                    ts.addEventListener('keydown', (ev) => {
+                      if (ev.key === 'Enter' || ev.key === ' ') {
+                        ev.preventDefault();
+                        ts.click();
+                      }
+                    });
+                    wrap.appendChild(ts);
+                  }
+
+                  const txt = document.createElement('span');
+                  txt.className = 'transcript-text';
+                  txt.textContent = safeText;
+                  wrap.appendChild(txt);
+
+                  transcriptContentEl.appendChild(wrap);
+                } catch (err) {
+                  console.warn('Failed to append transcript line', err);
+                }
+              }
+
+              // Try to extract seconds from different entry shapes
+              function secondsFor(entry) {
+                try {
+                  // If entry already has numeric seconds
+                  if (entry && typeof entry.timeInSeconds === 'number' && Number.isFinite(entry.timeInSeconds)) {
+                    return Math.floor(entry.timeInSeconds);
+                  }
+
+                  // If entry has a timestamp string e.g. "MM:SS" or "HH:MM:SS"
+                  if (entry && typeof entry.timestamp === 'string' && entry.timestamp.trim()) {
+                    return parseTimestamp(entry.timestamp.trim());
+                  }
+
+                  // If entry is a string line, look for leading timestamp
+                  const lineText = (typeof entry === 'string') ? entry : (entry && (entry.text || entry.transcript) ? (entry.text || entry.transcript) : null);
+                  if (typeof lineText === 'string') {
+                    const m = lineText.trim().match(/^\[?(\d{1,2}:\d{2}(?::\d{2})?)\]?/);
+                    if (m && m[1]) return parseTimestamp(m[1]);
+                  }
+                } catch (err) {
+                  // ignore and return null below
+                }
+                return null;
+              }
+
+              // Case A: transcript is an array of entries
+              if (Array.isArray(episodeData.transcript) && episodeData.transcript.length > 0) {
+                episodeData.transcript.forEach((entry) => {
+                  if (!entry) return;
+                  if (typeof entry === 'string') {
+                    const sec = secondsFor(entry);
+                    const textOnly = entry.replace(/^\[?\d{1,2}:\d{2}(?::\d{2})?\]?\s*-?\s*/, '');
+                    if (sec !== null) {
+                      addLine(sec, textOnly);
+                    } else {
+                      addLine(null, entry);
+                    }
+                    return;
+                  }
+
+                  const speaker = entry.speaker || '';
+                  const text = entry.text || entry.transcript || '';
+                  const sec = secondsFor(entry);
+                  const body = speaker ? `${speaker}: ${text}` : text;
+                  if (sec !== null) addLine(sec, body);
+                  else addLine(null, body);
+                });
+                return;
+              }
+
+              // Case B: transcript may be an object with transcriptData (string)
+              if (episodeData.transcript && typeof episodeData.transcript === 'object' && typeof episodeData.transcript.transcriptData === 'string' && episodeData.transcript.transcriptData.trim()) {
+                const raw = episodeData.transcript.transcriptData.trim();
+
+                // If the data looks like WEBVTT/SRT with cue timestamps 'start --> end', parse cues
+                if (/-->/.test(raw) || raw.startsWith('WEBVTT')) {
+                  const lines = raw.split(/\r?\n/);
+                  let i = 0;
+                  while (i < lines.length) {
+                    const line = lines[i].trim();
+                    // skip numeric index lines
+                    if (/^\d+$/.test(line)) { i++; continue; }
+
+                    // match timestamp lines like '00:00:01.419 --> 00:00:10.320'
+                    const tsMatch = line.match(/^(\d{1,2}:\d{2}(?::\d{2}(?:[\.,]\d{1,3})?)?)\s*-->\s*(\d{1,2}:\d{2}(?::\d{2}(?:[\.,]\d{1,3})?)?)/);
+                    if (tsMatch) {
+                      const startTs = tsMatch[1];
+                      // collect following text lines until blank or next timestamp
+                      i++;
+                      const textLines = [];
+                      while (i < lines.length && lines[i].trim() !== '') {
+                        // stop if next line looks like a timestamp
+                        if (/-->/.test(lines[i])) break;
+                        textLines.push(lines[i].trim());
+                        i++;
+                      }
+                      const text = textLines.join(' ').replace(/\s+/g, ' ').trim();
+                      const sec = parseTimestamp(startTs.replace(',', '.'));
+                      addLine(sec, text);
+                      continue;
+                    }
+
+                    // otherwise, if non-empty, add as plain line
+                    if (line) addLine(null, line);
+                    i++;
+                  }
+                  return;
+                }
+
+                // Fallback: simple line-by-line
+                const lines = raw.split('\n');
+                lines.forEach(line => addLine(null, line.trim()));
+                return;
+              }
+
+              // Case C: fallback to transcriptText (raw string)
+              if (typeof episodeData.transcriptText === 'string' && episodeData.transcriptText.trim()) {
+                const lines = episodeData.transcriptText.split('\n');
+                lines.forEach(line => addLine(null, line.trim()));
+                return;
+              }
+
+              // Nothing to render
+              console.log('No transcript data found to render');
+            } catch (err) {
+              console.error('renderTranscript unexpected error', err && err.stack || err);
+            }
+          }
+
+          // Initially hidden
+          transcriptContainer.style.display = 'none';
+
+          transcriptToggleBtn.addEventListener('click', function() {
+            try {
+              const toggleTextEl = transcriptToggleBtn.querySelector('.toggle-text');
+              const isHidden = transcriptContainer.style.display === 'none' || getComputedStyle(transcriptContainer).display === 'none';
+
+              if (isHidden) {
+                // Populate transcript before showing
+                renderTranscript();
+                transcriptContainer.style.display = 'block';
+                if (toggleTextEl) toggleTextEl.textContent = 'Hide Transcript';
+              } else {
+                transcriptContainer.style.display = 'none';
+                if (toggleTextEl) toggleTextEl.textContent = 'Show Transcript';
+              }
+            } catch (err) {
+              console.warn('Transcript toggle click handler error', err);
+            }
+          });
+        }
+      } catch (e) {
+        console.warn('Transcript toggle wiring failed', e);
+      }
+
 
       //Audio Skip Functionality (namespaced)
       function handleAudioSkip() {
