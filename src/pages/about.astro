@@ -2,7 +2,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 
 const pageTitle = "About Me";
-
+const skills = ["HTML", "CSS", "JavaScript", "React", "Astro", "Writing Docs"];
 
 ---
 
@@ -13,15 +13,20 @@ const pageTitle = "About Me";
     <p>I know people tend to keep things seperate, but I have been trying for years to brand myself
          in a way that neatly categorizes everything I do. But the problem I run into is I end up people pleasing which hinders my creativity.
         So for my own mental health, and perhaps to your discomfort, here is all of me.</p>
-    <h2>My Opinions</h2>
-        <h3><a href="/podcast/">My Podcast</a></h3>
-        <p>I call it my multimedia podcast. Listen on the website for the intended listening experience!</p>
-        <h3><a href="/courses/">Courses</a> (Coming Soon)</h3>
+    <!-- For Later 
+        <h2>Professionally</h2>
+        <h3><a>My Resume</a></h3>
+        <p>{skills}</p>
+        <p>Take a look!</p>
+        -->
+        <h3><a>Podcast</a></h3>
+        <p>Bringing spirituality down to earth.</p>
+        <h3><a>Courses</a></h3>
         <p>These are things I've learned that I'd like to share with you.</p>
     <h2>Creatively</h2>
-        <h3><a href="music.html">My Music</a></h3>
-        <p>I write music in all kinds of genres. I mainly write in odd meters because I think it's fun.</p>
-        <h3><a href="writing.html">My Writing</a></h3>
+        <h3><a>My Music</a></h3>
+        <p>I write music in all kinds of genres. My mainly write in odd meters because I think it's fun.</p>
+        <h3><a>My Writing</a></h3>
         <p>My writing is anything from poetry and short stories, to full-blown novels, and the categories include 
-            adventure, science fiction, and fantasy. I mostly write for adult audiences so romance and erotica are often included.</p>
+            adventure, science fiction, and fantasy. I mostly write for adult audiences so romance and erotica are included.</p>
 </BaseLayout>

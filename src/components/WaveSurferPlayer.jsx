@@ -162,6 +162,7 @@ export default function WaveSurferPlayer({
   const wavesurfer = useRef(null);
   const preloadedTracks = useRef(new Map()); // Store preloaded WaveSurfer instances
   const lyricsContainerRef = useRef(null);
+  const playedRef = useRef(null);
   
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -187,6 +188,14 @@ export default function WaveSurferPlayer({
 
   // Parse lyrics data from multiple formats
   const [parsedLyrics, setParsedLyrics] = useState({ static: null, synced: null });
+
+  // Refs to hold latest lyrics and mode so handlers needn't recreate player when they change
+  const parsedLyricsRef = useRef(parsedLyrics);
+  const lyricsModeRef = useRef(lyricsMode);
+
+  // Keep refs in sync
+  useEffect(() => { parsedLyricsRef.current = parsedLyrics; }, [parsedLyrics]);
+  useEffect(() => { lyricsModeRef.current = lyricsMode; }, [lyricsMode]);
   
   useEffect(() => {
     console.log('Lyrics: Track changed, checking lyrics data:', lyricsData);
@@ -255,6 +264,10 @@ export default function WaveSurferPlayer({
             console.log('🚀 All tracks preloaded! Revealing player interface.');
             setAllTracksLoaded(true);
             setGlobalLoading(false);
+            // Notify page that global preload is complete
+            try { window.dispatchEvent(new CustomEvent('music-player-global-ready', { detail: { total: tracks.length } })); } catch (e) { /* ignore */ }
+            // Hide any loading placeholder if present on the page
+            try { const el = document.getElementById('music-loading'); if (el) el.style.display = 'none'; } catch (e) { /* ignore */ }
           }
         });
 
@@ -299,6 +312,7 @@ export default function WaveSurferPlayer({
       console.log('⚠️ Fallback timeout reached (possible Sanity free tier limits) - showing player interface anyway');
       setAllTracksLoaded(true);
       setGlobalLoading(false);
+      try { window.dispatchEvent(new CustomEvent('music-player-global-ready', { detail: { total: tracks.length, fallback: true } })); } catch (e) {}
     }, 5000);
 
     return () => {
@@ -413,50 +427,64 @@ export default function WaveSurferPlayer({
         setIsLoading(false);
         setDuration(wavesurfer.current.getDuration());
         wavesurfer.current.setVolume(volume);
+        // Notify page that this player instance is ready
+        try { window.dispatchEvent(new CustomEvent('music-player-ready', { detail: { trackIndex: currentTrackIndex } })); } catch (e) {}
+        // Hide loading placeholder if present
+        try { const el = document.getElementById('music-loading'); if (el) el.style.display = 'none'; } catch (e) {}
+        // Initialize waveform played overlay
+        try {
+          if (playedRef.current) playedRef.current.style.width = '0%';
+        } catch (e) {}
       });
 
       wavesurfer.current.on('play', () => setIsPlaying(true));
       wavesurfer.current.on('pause', () => setIsPlaying(false));
       
-      wavesurfer.current.on('audioprocess', () => {
-        const time = wavesurfer.current.getCurrentTime();
-        setCurrentTime(time);
-        
-        // Update synced lyrics
-        if (parsedLyrics.synced && lyricsMode === 'synced') {
-          const currentIndex = parsedLyrics.synced.findIndex((lyric, index) => {
-            const nextLyric = parsedLyrics.synced[index + 1];
-            return time >= lyric.time && (!nextLyric || time < nextLyric.time);
-          });
-          if (currentIndex !== currentLyricIndex) {
-            console.log('Lyrics: Current line changed to index:', currentIndex, 'time:', time);
+        wavesurfer.current.on('audioprocess', () => {
+          const time = wavesurfer.current.getCurrentTime();
+          setCurrentTime(time);
+
+          // Update synced lyrics using refs to avoid re-creating wavesurfer when lyrics change
+          const latestParsed = parsedLyricsRef.current;
+          const latestMode = lyricsModeRef.current;
+          if (playedRef.current && duration > 0) {
+            try { playedRef.current.style.width = `${Math.max(0, Math.min(100, (time / duration) * 100))}%`; } catch (e) {}
           }
-          setCurrentLyricIndex(currentIndex);
-          
-          // Auto-scroll within the lyrics container only (don't scroll the page)
-          if (currentIndex >= 0 && lyricsContainerRef.current) {
-            setTimeout(() => {
-              const lyricsContainer = lyricsContainerRef.current;
-              const activeLine = lyricsContainer?.querySelector('.lyric-line.active');
-              if (activeLine && lyricsContainer) {
-                const containerRect = lyricsContainer.getBoundingClientRect();
-                const lineRect = activeLine.getBoundingClientRect();
-                const containerScrollTop = lyricsContainer.scrollTop;
-                const relativeTop = lineRect.top - containerRect.top + containerScrollTop;
-                const containerHeight = lyricsContainer.clientHeight;
-                
-                // Scroll within the container to center the active line
-                const targetScrollTop = relativeTop - (containerHeight / 2) + (lineRect.height / 2);
-                
-                lyricsContainer.scrollTo({
-                  top: Math.max(0, targetScrollTop),
-                  behavior: 'smooth'
-                });
-              }
-            }, 50);
+
+          if (latestParsed && latestParsed.synced && latestMode === 'synced') {
+            const currentIndex = latestParsed.synced.findIndex((lyric, index) => {
+              const nextLyric = latestParsed.synced[index + 1];
+              return time >= lyric.time && (!nextLyric || time < nextLyric.time);
+            });
+            if (currentIndex !== currentLyricIndex) {
+              console.log('Lyrics: Current line changed to index:', currentIndex, 'time:', time);
+            }
+            setCurrentLyricIndex(currentIndex);
+
+            // Auto-scroll within the lyrics container only (don't scroll the page)
+            if (currentIndex >= 0 && lyricsContainerRef.current) {
+              setTimeout(() => {
+                const lyricsContainer = lyricsContainerRef.current;
+                const activeLine = lyricsContainer?.querySelector('.lyric-line.active');
+                if (activeLine && lyricsContainer) {
+                  const containerRect = lyricsContainer.getBoundingClientRect();
+                  const lineRect = activeLine.getBoundingClientRect();
+                  const containerScrollTop = lyricsContainer.scrollTop;
+                  const relativeTop = lineRect.top - containerRect.top + containerScrollTop;
+                  const containerHeight = lyricsContainer.clientHeight;
+
+                  // Scroll within the container to center the active line
+                  const targetScrollTop = relativeTop - (containerHeight / 2) + (lineRect.height / 2);
+
+                  lyricsContainer.scrollTo({
+                    top: Math.max(0, targetScrollTop),
+                    behavior: 'smooth'
+                  });
+                }
+              }, 50);
+            }
           }
-        }
-      });
+        });
 
       wavesurfer.current.on('error', (error) => {
         console.error('WaveSurfer error:', error);
@@ -470,7 +498,7 @@ export default function WaveSurferPlayer({
     return () => {
       cleanup().catch(err => console.warn('Cleanup error:', err.message));
     };
-  }, [audioUrl, volume, currentTrackIndex, lyricsMode, parsedLyrics]);
+  }, [audioUrl, volume, currentTrackIndex]);
 
   const switchTrack = (trackIndex) => {
     if (trackIndex >= 0 && trackIndex < tracks.length && trackIndex !== currentTrackIndex) {
@@ -510,16 +538,54 @@ export default function WaveSurferPlayer({
   };
 
   const skipBackward = () => {
-    if (wavesurfer.current) {
-      const currentTime = wavesurfer.current.getCurrentTime();
-      wavesurfer.current.seekTo(Math.max(0, currentTime - 10) / duration);
+    if (!wavesurfer.current) return;
+
+    try {
+      // Double-click detection: if the user clicks twice quickly, go to previous track
+      const now = Date.now();
+      const last = skipBackward._lastClick || 0;
+      const DOUBLE_MS = 400;
+      skipBackward._lastClick = now;
+
+      if (now - last <= DOUBLE_MS) {
+        // double-click => previous track (if available)
+        if (tracks && tracks.length > 1 && currentTrackIndex > 0) {
+          switchTrack(currentTrackIndex - 1);
+        } else {
+          // fallback: restart
+          const currentTime = wavesurfer.current.getCurrentTime();
+          wavesurfer.current.seekTo(Math.max(0, currentTime - 10) / duration);
+        }
+        return;
+      }
+
+      // single click: restart current track (seek to 0)
+      wavesurfer.current.seekTo(0);
+    } catch (err) {
+      console.warn('skipBackward error', err);
     }
   };
 
   const skipForward = () => {
-    if (wavesurfer.current) {
-      const currentTime = wavesurfer.current.getCurrentTime();
-      wavesurfer.current.seekTo(Math.min(duration, currentTime + 10) / duration);
+    try {
+      // If this player has multiple tracks, advance to the next track instead of seeking forward
+      if (tracks && tracks.length > 1) {
+        if (currentTrackIndex < tracks.length - 1) {
+          switchTrack(currentTrackIndex + 1);
+        } else {
+          // at end of album: do nothing (could optionally wrap to first)
+          console.log('Already at last track');
+        }
+        return;
+      }
+
+      // Otherwise, perform a small time skip (fallback behavior)
+      if (wavesurfer.current) {
+        const currentTime = wavesurfer.current.getCurrentTime();
+        wavesurfer.current.seekTo(Math.min(duration, currentTime + 10) / duration);
+      }
+    } catch (err) {
+      console.warn('skipForward error', err);
     }
   };
 
@@ -616,7 +682,9 @@ export default function WaveSurferPlayer({
 
           {/* Waveform */}
           <div class="waveform-container">
-            <div ref={waveformRef} class="waveform"></div>
+            <div ref={waveformRef} class="waveform">
+              <div ref={playedRef} class="waveform-played" aria-hidden="true"></div>
+            </div>
           </div>
 
           {/* Controls */}
@@ -626,7 +694,7 @@ export default function WaveSurferPlayer({
             </div>
             
             <div class="control-buttons">
-              <button onClick={skipBackward} class="control-btn">
+              <button onClick={skipBackward} class="control-btn" title="Restart (single click) — Previous track (double click)" aria-label="Restart track or previous track on double click">
                 <SkipBackIcon size={20} />
               </button>
               
@@ -638,7 +706,12 @@ export default function WaveSurferPlayer({
                 {isLoading ? '...' : isPlaying ? <PauseIcon size={24} /> : <PlayIcon size={24} />}
               </button>
               
-              <button onClick={skipForward} class="control-btn">
+              <button 
+                onClick={skipForward} 
+                class="control-btn"
+                title={tracks && tracks.length > 1 ? 'Next track' : 'Skip forward 10s'}
+                aria-label={tracks && tracks.length > 1 ? 'Next track' : 'Skip forward 10 seconds'}
+              >
                 <SkipForwardIcon size={20} />
               </button>
               
@@ -997,6 +1070,23 @@ export default function WaveSurferPlayer({
         .track-btn:disabled {
           opacity: 0.6;
           cursor: not-allowed;
+        }
+
+        /* Waveform played overlay */
+        .waveform {
+          position: relative;
+        }
+
+        .waveform-played {
+          position: absolute;
+          left: 0;
+          top: 0;
+          bottom: 0;
+          width: 0%;
+          pointer-events: none;
+          background: linear-gradient(90deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04));
+          mix-blend-mode: multiply;
+          transition: width 0.12s linear;
         }
 
         .track-btn.loading {

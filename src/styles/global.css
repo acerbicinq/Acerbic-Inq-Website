@@ -3,33 +3,34 @@
 }
 
 html {
+  display: table;
+  margin: 0 auto;
   background-color: var(--background-color);
   color: var(--text-color);
   font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
   }
+
   header {
     margin-top: 3em;
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-content: center;
   }
+
   body {
-    margin: 0 auto;
-    width: 100%;
-    max-width: 80ch;
     padding: 1rem;
     line-height: 1.5;
-
-  
   }
  
   h1 {
-    margin: 2.5rem 0;
+    margin: 2.5rem auto;
     font-size: 2.5rem;
-    background-image: var(--h1-bg-color);
-    padding: 0 0.1em;
+    text-align: center;
+    background: var(--h1-bg-color);
+    padding: 10px;
     border-radius: 16px;
   }
+
   a {
     color: var(--text-color)
   }
@@ -84,58 +85,29 @@ html {
   --text-color: #000;
   --link-bg-color: #f1d4a1;
   --hamburger-line-color: #000;
-  --h1-bg-color: linear-gradient(to right, #f1d4a1, #edc06a);
-  
-  /* New color palette from design guide */
-  --color-plum: #685466;
-  --color-blush: #eecad4;
-  --color-gold: #dbb982;
-  --color-sage: #cfdcda;
-  --color-teal: #5e7f7b;
-  --color-charcoal: #666e70;
-  
-  /* Music player specific colors */
-  --player-bg: var(--color-plum);
-  --player-accent: var(--color-gold);
-  --player-text: #ffffff;
-  --player-secondary: var(--color-blush);
-  --waveform-progress: var(--color-teal);
-  --waveform-bg: var(--color-sage);
-
-    /*For Podcast Page*/
-  --episode-card-bg: #f1d4a1;
-  --episode-number-bg: #685466;
-  --button-text-color: #dddcd1;
-  --button-hover-bg: #dbb982;
+  --h1-bg-color: #f1d4a1;
+  --card-bg-color: #f1d4a1;
+  --btn-bg-color: #9c7c99;
+  --btn-hover-color: #685466;
+  --selected-mode-btn-color: #303030;
+  --dormant-mode-btn-color: #494949;
 }
 
-/* Define dark theme styles */
+/* Dark theme variable overrides: add the class `.dark` to a top-level element (html or body) */
 .dark {
   --background-color: #303030;
   --text-color: #f1d4a1;
   --link-bg-color: #494949;
   --hamburger-line-color: #f1d4a1;
-  --h1-bg-color: linear-gradient(to right, #494949, #303030);
-  
-  /* Dark theme adjustments for new palette */
-  --player-bg: #424242;
-  --player-accent: var(--color-gold);
-  --player-text: #ffffff;
-  --player-secondary: #606060;
-  --waveform-progress: var(--color-teal);
-  --waveform-bg: #505050;
-
-  /*For Podcast Page*/
-  --episode-card-bg: #4a424a;
-  --episode-number-bg: #303030;
-  --button-text-color: #f1d4a1;
-  --button-hover-bg: #685466;
-  --button-hover-text-color: #dddcd1;
+  --h1-bg-color: #494949;
+  --btn-bg-color: #685466;
+  --btn-hover-color: #3e3d3e;
+  --selected-mode-btn-color: #f1d4a1;
+  --dormant-mode-btn-color: #edc06a;
 }
 
 /* Styles for Footer */
 footer {
-  gap: 6rem;
   margin-top: 2rem;
   & nav {
     margin: 0 auto;
@@ -143,6 +115,8 @@ footer {
     flex-direction: column;
     @media (min-width: 620px) {
       flex-direction: row;
+      align-items: center;
+      justify-content: center;
     }
   }
   & a {
@@ -157,12 +131,11 @@ footer {
     height: 25px;
     width: 25px;
   }
-}
 
 #copyright {
+display: block;
 margin: 0 auto;
 text-align: center;
-align-self: flex-end;
 color: var(--text-color);
-
+}
 }

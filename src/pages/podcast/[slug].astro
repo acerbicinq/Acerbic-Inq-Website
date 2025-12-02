@@ -1,0 +1,335 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import '../../styles/podcast.css';
+import { client, urlFor } from "../../lib/sanity";
+
+export async function getStaticPaths() {
+  const episodes = await client.fetch(`
+    *[_type == "podcastEpisode"] {
+      slug,
+      title
+    }
+  `);
+  
+  return episodes.map((episode) => ({
+    params: { slug: episode.slug.current },
+  }));
+}
+
+const { slug } = Astro.params;
+
+const episode = await client.fetch(`
+  *[_type == "podcastEpisode" && slug.current == $slug][0] {
+    _id,
+    title,
+    slug,
+    episodeNumber,
+    publishedAt,
+    description,
+    coverArt,
+    audioFile{
+      asset->{
+        _id,
+        url
+      }
+    },
+    videoFile{
+      asset->{
+        _id,
+        url
+      }
+    },
+    duration,
+    guest,
+    chapters[]{ 
+      ...,
+      interludeTracks[]{
+        ...,
+        fallbackAudio{
+          asset->{
+            _id,
+            url
+          }
+        }
+      }
+    },
+    transcriptFile{
+      asset->{
+        _id,
+        url
+      }
+    },
+    transcriptText,
+    transcript,
+    tags,
+    showNotes,
+    radioSettings
+  }
+`, { slug });
+
+if (!episode) {
+  return Astro.redirect("/404");
+}
+
+const pageTitle = `Episode ${episode.episodeNumber}: ${episode.title}`;
+---
+
+<BaseLayout pageTitle={pageTitle}>
+  <div class="episode-container">
+    <header class="episode-header">
+
+      <div class="episode-cover-section">
+        {episode.coverArt && (
+          <img 
+            src={urlFor(episode.coverArt).width(500).height(600).url()} 
+            alt={`Cover art for ${episode.title}`}
+            class="episode-cover"
+          />
+        )}
+      
+    
+<div class="audio-player">
+            {episode.audioFile && (
+  <div id="audio-player-container" class="audio-player-container" data-media="audio">
+          <audio id="mainAudio" preload="metadata" class="controls">
+            <source src={episode.audioFile?.asset?.url} type="audio/mpeg" />
+            Your browser does not support the audio element.
+          </audio>
+          <div class="audio-seek-container"><input type="range" id="audio-seek-bar" min="0" max="100" value="0"></div>
+          <div class="audio-controls">
+                <button id="play-pause">►</button>
+                <span id="current-time">0:00</span> / <span id="duration">0:00</span>
+                <input type="range" id="audio-volume-control" min="0" max="1" step="0.1" value="1">
+                <button class="audio-skip-back-button" data-skip="-10">« 10s</button>
+                <button class="audio-skip-forward-button" data-skip="25">10s »</button>
+                <select id="playback-speed">
+                    <option value="0.5">0.5x</option>
+                    <option value="0.75">0.75x</option>
+                    <option value="1" selected>1x</option>
+                    <option value="1.5">1.5x</option>
+                    <option value="2">2x</option>
+                </select>
+          </div>
+            
+            
+
+
+        </div>
+      )}
+      </div>
+      
+       
+      </div>
+    </header>
+
+    <!-- Video Player -->
+    <div class="video-player-container" id="video-player-container">
+      
+      {episode.videoFile && (
+        <div class="video-player" data-media="video">
+          <video id="mainVideo" class="video" preload="metadata">
+            <source src={episode.videoFile?.asset?.url} type="video/mp4" />
+            Your browser does not support the video element.
+          </video>
+          
+            <div class="progress">
+              <input type="range" 
+              class="progress_filled" 
+              id="video-progress"
+              min="0"
+              max="100"
+              step="0.1"
+              value="0"/></div>
+            <div class="video-controls">
+            <button class="play_button" id="toggleButton" title="Toggle Play">►</button>
+              <span id="video-time">0:00</span> / <span id="video-duration">0:00</span>
+              <button class="skip-back-button" data-skip="-10">« 10s</button>
+              <button class="skip-forward-button" data-skip="25">10s »</button>
+              <input
+                type="range"
+                name="volume"
+                class="volume__slider"
+                id="video-volume-control"
+                min="0"
+                max="1"
+                step="0.05"
+                value="1"
+              />
+              <select class="video-speed">
+                                <option value="0.5">0.5x</option>
+                                <option value="0.75">0.75x</option>
+                                <option value="1" selected>1x</option>
+                                <option value="1.5">1.5x</option>
+                                <option value="2">2x</option>
+                            </select>
+              <button class="fullscreen-button" id="fullscreenButton" title="Fullscreen" onclick="goFullscreen('player'); return false">⛶</button>
+          </div>
+            </div>
+      )}
+    </div>
+
+
+
+
+
+
+
+<!-- Media Player Controls -->
+    <div class="media-controls">
+      <div class="media-selector">
+        <button class="media-btn" data-type="audio">🎧 Audio</button>
+        {episode.videoFile && (
+          <button class="media-btn" data-type="video">📹 Video</button>
+        )}
+      </div>
+
+<!-- Chapter Buttons Scroller -->
+<div class="chapters-scroller">
+  <div class="chapters-track">
+    {episode.chapters.map((chapter, index) => (
+      <div class="chapter-block">
+        <!-- Chapter Button -->
+        <button 
+          class="chapter-button" 
+          data-chapter-index={index}
+          data-start-time={chapter.startTime}
+          data-end-time={chapter.endTime}
+        >
+          {index + 1}. {chapter.title} ({chapter.startTime})
+          {chapter.description && (
+            <p class="chapter-description hidden">{chapter.description}</p>
+          )}
+        </button>
+
+        
+       
+      </div>
+    ))}
+  </div>
+</div>
+
+{/* Interlude Track Info */}
+{episode.chapters.map((chapter, index) => (
+  <div class="interlude-info hidden" id={`interlude-tracks-${index}`}>
+    <h4 class="interlude-title">Interlude Tracks</h4>
+
+    <div class="interlude-tracks">
+      {chapter.interludeTracks?.map((track, trackIndex) => (
+        <div class="interlude-track" data-track-index={trackIndex}>
+          
+          {/* Track Title / Artist */}
+          <div class="track-info">
+            <strong>{track.songTitle}</strong> by {track.artist}
+            {track.duration && (
+              <span class="duration-info"> ({track.duration})</span>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+))}
+<audio id="interlude-audio" class="fallback-audio hidden"></audio>
+
+    
+
+
+
+<!-- Episode Meta -->
+  <div class="episode-meta">
+          {episode.duration && <span class="duration">⏱️ Duration: {episode.duration}</span>}
+          {episode.guest?.name && <span class="guest">🎤 with {episode.guest.name}</span>}
+          <time datetime={episode.publishedAt}>Published on: 
+            {new Date(episode.publishedAt).toLocaleDateString()}
+          </time>
+        </div>
+        
+        {episode.tags && episode.tags.length > 0 && (
+          <div class="episode-tags">
+            {episode.tags.map((tag) => (
+              <span class="tag">{tag}</span>
+            ))}
+          </div>
+        )}
+
+    <!-- Transcript Section -->
+    {episode.transcript && (episode.transcript.transcriptData || episode.transcript.transcriptFile) && (
+      <div class="transcript-section">
+        <h2>📜 Episode Transcript</h2>
+        <div class="transcript-controls">
+          <button id="transcript-toggle" class="transcript-toggle-btn">
+            <span class="toggle-text">Show Transcript</span>
+          </button>
+        </div>
+        
+        <!-- Raw transcript data for parsing -->
+        <script type="application/json" id="transcript-raw-data" set:html={JSON.stringify({
+          transcriptData: (episode.transcript?.transcriptData && typeof episode.transcript.transcriptData === 'string') ? episode.transcript.transcriptData : '',
+          transcriptFile: episode.transcript?.transcriptFile || null,
+          defaultSpeaker: (episode.transcript?.defaultSpeaker && typeof episode.transcript.defaultSpeaker === 'string') ? episode.transcript.defaultSpeaker : 'Host',
+          enableSync: episode.transcript?.enableSync === true || (episode.transcript?.transcriptData && episode.transcript.transcriptData.trim().length > 0),
+          formatHint: (episode.transcript?.formatHint && typeof episode.transcript.formatHint === 'string') ? episode.transcript.formatHint : 'auto'
+        })}></script>
+        
+        <!-- Scrolling Transcript Container (Audio Mode) -->
+        <div id="transcript-container" class="transcript-container" style="display: none;">
+          <div class="transcript-content" id="transcript-content">
+            <!-- Transcript segments will be dynamically populated by JavaScript -->
+            <div class="transcript-loading">
+              <p>Loading transcript...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+
+    <!-- Show Notes -->
+    {episode.showNotes && (
+      <div class="show-notes-section">
+        <h2>Show Notes</h2>
+        <div class="show-notes-content">
+          <!-- Rich text content would need a component to render properly -->
+          <div class="rich-text-placeholder">
+            [Show notes content would be rendered here]
+          </div>
+        </div>
+      </div>
+    )}
+
+        <!-- Guest Info -->
+    {episode.guest && (
+      <div class="guest-section">
+        <h2>Guest: {episode.guest.name}</h2>
+        {episode.guest.bio && <p>{episode.guest.bio}</p>}
+        
+        <div class="guest-links">
+          {episode.guest.website && (
+            <a href={episode.guest.website} target="_blank" rel="noopener noreferrer">
+              Website
+            </a>
+          )}
+          {episode.guest.social?.map((social) => (
+            <a href={social.url} target="_blank" rel="noopener noreferrer">
+              {social.platform.charAt(0).toUpperCase() + social.platform.slice(1)}
+            </a>
+          ))}
+        </div>
+      </div>
+    )}
+   
+
+    <!-- Navigation -->
+    <nav class="episode-navigation">
+      <a href="/podcast" class="back-link">← Back to Podcast</a>
+    </nav>
+
+  </div>
+  <script id="episode-data" type="application/json" set:html={JSON.stringify(episode)}></script>
+  <script type="module" src="/scripts/podcast-player.js"></script>
+  
+</BaseLayout>
+
+
+
+
+

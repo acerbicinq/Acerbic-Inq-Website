@@ -1,0 +1,22 @@
+---
+import { getCollection } from "astro:content";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import BlogPost from "../components/BlogPost.astro";
+
+const pageTitle = "Multimedia Articles";
+const allPosts = await getCollection("posts");
+---
+<BaseLayout pageTitle={pageTitle}>
+    <p>I really love making multimedia articles. Everytime I make a podcast, I might have something 
+    extra to say about it later, and everytime I write something, I almost always want to say something. So I decided to mesh the two ideas together.
+Unfortunately this page is under construction!</p>
+<p>NOTE: Check out my <a href="/podcast">Podcast</a> for now! =)</p>
+  <ul>
+    {
+      allPosts.map((post) => (
+        
+        <BlogPost url={`/posts/${post.slug}/`} title={post.data.title} />
+      ))
+    }
+  </ul>
+</BaseLayout>

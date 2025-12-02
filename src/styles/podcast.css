@@ -1,0 +1,436 @@
+/* Center the Page Content */
+.episode-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+
+/* Cover Photo */
+.episode-cover {
+  border: var(--text-color) 1px solid;
+  
+}
+
+
+/* Audio Player Controls */
+#audio-player-container, .audio-player-container {
+  display: flex;
+  flex-direction: column; /* stack seekbar above controls */
+  align-items: stretch;
+  justify-content: flex-start;
+  border: var(--text-color) 2px solid;
+  padding: 0.75em;
+  box-shadow: 2px 2px var(--text-color);
+  gap: 0.5rem;
+}
+.audio-seek-container {
+  width: 100%;
+  margin: -18px 0;
+}
+#play-pause,
+#volume-control,
+#playback-speed,
+#audio-seek-bar,
+#current-time,
+#duration {
+ padding: 5px;
+ font-size: 14px;
+}
+
+#play-pause {
+    background-color: var(--text-color);
+    color: var(--background-color) ;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 2px;
+    cursor: pointer;
+}
+
+#volume-control {
+  width: 4.5rem;
+}
+#audio-seek-bar {
+  width: 100%;
+  min-width: 120px;
+  max-width: 100%;
+}
+
+.audio-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.audio-controls #play-pause {
+  flex: 0 0 auto;
+}
+.audio-controls #current-time,
+.audio-controls #duration {
+  flex: 0 0 auto;
+}
+.audio-controls #audio-volume-control {
+  width: 4.5rem;
+}
+
+/* Video Player Controls */
+.video-player-container {
+  width: 100%;
+  max-width: 900px;
+  margin: 1em;
+}
+.video-controls {
+  display: flex;
+  flex-grow: 1;
+  align-items: center;
+  max-width: 480px;
+  border: var(--text-color) 1px solid;
+  padding: 15px;
+  gap: 10px;
+  box-shadow: 1px 1px var(--text-color);
+}
+.progress {
+  display: block;
+  width: 480px;
+}
+#toggleButton {
+    background-color: var(--text-color);
+    color: var(--background-color) ;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 2px;
+    cursor: pointer;
+}
+
+/*Audio/Video Toggle*/
+.hidden {
+    display: none !important;
+} 
+
+.media-selector {
+    margin-top: 1em;
+    display: flex;
+    justify-content: center;
+}
+.media-btn {
+    background-color: var(--selected-mode-btn-color);
+    color: var(--h1-bg-color);
+    border: 1px solid var(--text-color);
+    padding: 10px 30px;
+    cursor: pointer;
+    border-radius: 4px;
+    margin: 0 0.5em;
+    box-shadow: var(--text-color) 1px 1px;
+}
+
+.media-btn.active {
+  background-color: var(--dormant-mode-btn-color);
+  box-shadow: var(--text-color) -1px -1px;
+}
+
+.chapter-button,
+.interlude-button {
+    /* Default stacked appearance for non-scroller contexts */
+    display: block;
+    background-color: var(--btn-bg-color);
+    color: var(--text-color);
+    border: 1px solid var(--text-color);
+    padding: 10px 20px;
+    cursor: pointer;
+    border-radius: 2px;
+    margin: 0.5em 0;
+    box-shadow: var(--text-color) 1px 1px;
+}
+
+/* Horizontal side-scroller for chapters */
+.chapters-scroller {
+  width: 100%;
+  overflow: scroll;
+}
+.chapters-scroller .chapters-track {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 1rem;
+  white-space: nowrap;
+}
+
+.chapter-block {
+  display: inline-flex;
+}
+
+/*Trancript Controls Styling*/
+.transcript-toggle-btn {
+    background-color: var(--btn-bg-color);
+    color: var(--text-color);
+    border: 1px solid var(--text-color);
+    padding: 10px 20px;
+    cursor: pointer;
+    border-radius: 2px;
+}
+/* Transcript Styling */
+.timestamp {
+border: 1px solid var(--text-color);
+padding: 0 0.5em;
+margin: 3px;
+}
+
+/* Transcript line layout: timestamp + text */
+.transcript-line {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: 0.25rem 0;
+  border-bottom: 1px dashed rgba(0,0,0,0.03);
+}
+
+.transcript-timestamp {
+  color: var(--text-color);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  min-width: 3.5rem; /* keeps timestamps aligned */
+  text-align: right;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+}
+
+.transcript-timestamp:focus {
+  outline: 2px solid rgba(59, 130, 246, 0.5);
+  border-radius: 3px;
+}
+
+.transcript-timestamp:hover {
+  color: var(--h1-bg-color);
+}
+
+.transcript-text {
+  flex: 1 1 auto;
+  color: var(--text-color);
+}
+
+/* Music player loading placeholder */
+.music-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 160px;
+  margin: 1rem 0;
+}
+.music-loading-inner { text-align: center; }
+.music-loading-spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid rgba(0,0,0,0.08);
+  border-left-color: var(--text-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 8px auto;
+}
+.music-loading-text { color: var(--text-color); }
+
+/* CROSS-BROWSER COMPATABILITY - START */
+/* Cross Browswer Compatability with Media Players */
+/* Removes Default Audio Player Styling Across All Browsers */
+input[type=range] {
+  -webkit-appearance: none; /* Hides the slider so that custom slider can be made */
+  appearance: none;
+  width: 100%; /* Specific width is required for Firefox. */
+  background: transparent; /* Otherwise white in Chrome */
+}
+
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+input[type=range]:focus {
+  outline: none; /* Removes the blue border. You should probably do some kind of focus styling for accessibility reasons though. */
+}
+
+input[type=range]::-ms-track {
+  width: 100%;
+  cursor: pointer;
+
+  /* Hides the slider so custom styles can be added */
+  background: transparent; 
+  border-color: transparent;
+  color: transparent;
+}
+
+/* Special styling for WebKit/Blink */
+input[type=range]::-webkit-slider-thumb {
+  border: 1px solid #000000;
+  height: 26px;
+  width: 16px;
+  border-radius: 3px;
+  cursor: pointer;
+  margin-top: -14px; /* You need to specify a margin in Chrome, but in Firefox and IE it is automatic */
+  box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d; /* Add cool effects to your sliders! */
+}
+
+/* All the same stuff for Firefox */
+input[type=range]::-moz-range-thumb {
+  box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+  border: 1px solid #000000;
+  height: 15px;
+  width: 15px;
+  border-radius: 50px;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+/* All the same stuff for IE */
+input[type=range]::-ms-thumb {
+  box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+  border: 1px solid #000000;
+  height: 26px;
+  width: 16px;
+  border-radius: 3px;
+  background: #ffffff;
+  cursor: pointer;
+}
+/* MEDIA PLAYER STYLING */
+/* MEDIA PLAYER STYLING */
+
+input[type=range]#audio-seek-bar,
+input[type=range]#video-progress {
+  -webkit-appearance: none;
+  appearance: none;
+  margin: 18px 0;
+  width: 100%;
+}
+input[type=range]#audio-seek-bar:focus,
+input[type=range]#video-progress:focus {
+  outline: none;
+}
+input[type=range]#audio-seek-bar::-webkit-slider-runnable-track,
+input[type=range]#video-progress::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 8.4px;
+  cursor: pointer;
+  box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+  background: var(--btn-background-color);
+  border-radius: 1.3px;
+  border: 0.2px solid var(--text-color);
+}
+input[type=range]#audio-seek-bar::-webkit-slider-thumb {
+  box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+  border: 1px solid #000000;
+  height: 26px;
+  width: 16px;
+  border-radius: 3px;
+  background: var(--text-color);
+  cursor: pointer;
+  -webkit-appearance: none;
+  margin-top: -14px;
+}
+input[type=range]#audio-seek-bar:focus::-webkit-slider-runnable-track,
+input[type=range]#video-progress:focus::-webkit-slider-runnable-track {
+  background: var(--btn-background-color);
+}
+input[type=range]#audio-seek-bar::-moz-range-track,
+input[type=range]#video-progress::-moz-range-track {
+  width: 100%;
+  height: 8.4px;
+  cursor: pointer;
+  box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+  background: var(--btn-bg-color);
+  border-radius: 1.3px;
+  border: 0.2px solid #010101;
+}
+input[type=range]#audio-seek-bar::-moz-range-thumb {
+  box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+  border: 1px solid #000000;
+  height: 26px;
+  width: 16px;
+  border-radius: 3px;
+  background: var(--text-color);
+  cursor: pointer;
+}
+input[type=range]#audio-seek-bar::-ms-track,
+input[type=range]#video-progress::-ms-track
+ {
+  width: 100%;
+  height: 8.4px;
+  cursor: pointer;
+  background: transparent;
+  border-color: transparent;
+  border-width: 16px 0;
+  color: transparent;
+}
+input[type=range]#audio-seek-bar::-ms-fill-lower,
+input[type=range]#video-progress::-ms-fill-lower {
+  background: var(--btn-background-color);
+  border: 0.2px solid #010101;
+  border-radius: 2.6px;
+  box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+}
+input[type=range]#audio-seek-bar::-ms-fill-upper,
+input[type=range]#video-progress::-ms-fill-upper {
+  background: var(--btn-background-color);
+  border: 0.2px solid #010101;
+  border-radius: 2.6px;
+  box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+}
+input[type=range]#audio-seek-bar::-ms-thumb {
+  box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+  border: 1px solid #000000;
+  height: 26px;
+  width: 16px;
+  border-radius: 3px;
+  background: var(--btn-bg-color);
+  cursor: pointer;
+}
+input[type=range]#audio-seek-bar:focus::-ms-fill-lower,
+input[type=range]#video-progress:focus::-ms-fill-lower {
+  background: #3071a9;
+}
+input[type=range]#audio-seek-bar:focus::-ms-fill-upper,
+input[type=range]#video-progress:focus::-ms-fill-upper {
+  background: #367ebd;
+}
+
+/* VOLUME CONTROL STYLING */
+/* VOLUME CONTROL STYLING */
+input[type=range]#audio-volume-control::-webkit-slider-thumb,
+input[type=range]#video-progress::-webkit-slider-thumb {
+  background: var(--text-color);
+}
+input[type=range]#audio-volume-control::-webkit-slider-runnable-track {
+  cursor: pointer;
+  box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+  background: var(--btn-bg-color);
+  border-radius: 5px;
+  border: 0.2px solid #010101;
+}
+
+input[type=range]#audio-volume-control::-moz-range-track,
+input[type=range]#video-volume-control::-moz-range-track {
+  width: 100%;
+  height: 8.4px;
+  cursor: pointer;
+  box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+  background: var(--btn-bg-color);
+  border-radius: 5px;
+  border: 0.2px solid #010101;
+}
+
+input[type=range]#audio-volume-control::-moz-range-thumb,
+input[type=range]#video-volume-control::-moz-range-thumb,
+input[type=range]#video-progress::-moz-range-thumb {
+  box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+  border: 1px solid #000000;
+  background: var(--text-color);
+  cursor: pointer;
+}
+input[type=range]#video-progress::-moz-range-track {
+  width: 100%;
+  margin: 0 auto;
+  max-width: 900px;
+
+}

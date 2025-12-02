@@ -24,7 +24,7 @@ const bookPosts = await client.fetch(`
 
 <BaseLayout pageTitle={pageTitle}>
   <div class="books-container">
-    <h1>My Novels</h1>
+    
     <p>Dive into my collection of full-length novels and immersive storytelling.</p>
     
     {bookPosts.length === 0 ? (
@@ -41,13 +41,13 @@ const bookPosts = await client.fetch(`
               />
             )}
             <div class="post-content">
-              <h2>{post.title}</h2>
+              <h2 class="book-title">{post.title}</h2>
               
               {post.series?.seriesTitle && (
                 <div class="series-info">
                   <span class="series-title">{post.series.seriesTitle}</span>
                   {post.series.bookNumber && (
-                    <span class="book-number">Book {post.series.bookNumber}</span>
+                    <span class="book-number">(Book {post.series.bookNumber})</span>
                   )}
                 </div>
               )}
@@ -112,10 +112,8 @@ const bookPosts = await client.fetch(`
   }
   
   .book-post {
-    border: 1px solid var(--color-sage);
     border-radius: 12px;
     overflow: hidden;
-    background: linear-gradient(135deg, var(--color-blush), var(--color-sage));
     box-shadow: 0 8px 24px rgba(0,0,0,0.1);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
   }
@@ -133,28 +131,25 @@ const bookPosts = await client.fetch(`
   
   .post-content {
     padding: 2rem;
-    background: rgba(255, 255, 255, 0.9);
+    background: #303030;
   }
-  
-  .series-info {
-    margin: 0.5rem 0;
-  }
-  
-  .series-title {
-    background: var(--color-plum);
+
+  .book-title {
+    margin: 0;
+    font-size: 1.75rem;
     color: white;
-    padding: 0.25rem 0.75rem;
-    border-radius: 15px;
+  }
+
+  .series-title {
+    color: white;
     font-size: 0.8rem;
     font-weight: bold;
-    margin-right: 0.5rem;
+    margin-right: 5px;
   }
   
   .book-number {
     background: var(--color-teal);
     color: white;
-    padding: 0.25rem 0.75rem;
-    border-radius: 15px;
     font-size: 0.8rem;
     font-weight: bold;
   }
@@ -188,7 +183,7 @@ const bookPosts = await client.fetch(`
   }
   
   .description {
-    color: #666;
+    color: white;
     margin: 1rem 0;
     line-height: 1.5;
   }

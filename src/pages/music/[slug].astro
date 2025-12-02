@@ -1,7 +1,6 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { client, urlFor } from "../../lib/sanity";
-import SettingsPanel from "../../components/SettingsPanel.jsx";
 import WaveSurferPlayer from "../../components/WaveSurferPlayer.jsx";
 import PortableText from "../../components/PortableText.jsx";
 
@@ -70,6 +69,14 @@ const pageTitle = musicPost.title;
     <div class="post-content">
       {musicPost.tracks && musicPost.tracks.length > 0 && (
         <div class="tracks-section">
+          <!-- Loading placeholder shown until WaveSurferPlayer reports ready -->
+          <div id="music-loading" class="music-loading">
+            <div class="music-loading-inner">
+              <div class="music-loading-spinner" aria-hidden="true"></div>
+              <div class="music-loading-text">Loading music player…</div>
+            </div>
+          </div>
+
           <WaveSurferPlayer 
             tracks={musicPost.tracks.map((track, index) => {
               console.log(`Track ${index + 1} data:`, track);
@@ -85,24 +92,13 @@ const pageTitle = musicPost.title;
             albumTitle={musicPost.title}
             artist="Acerbic Inq"
             coverArt={musicPost.coverArt ? urlFor(musicPost.coverArt).width(300).height(300).url() : null}
-            streamingLinks={musicPost.streamingLinks || []}
+    
             client:load
           />
         </div>
       )}
       
-      {musicPost.streamingLinks && musicPost.streamingLinks.length > 0 && (
-        <div class="streaming-section">
-          <h2>Stream Full {musicPost.releaseType || 'Release'}</h2>
-          <div class="streaming-links">
-            {musicPost.streamingLinks.map((link) => (
-              <a href={link.url} target="_blank" rel="noopener noreferrer" class="streaming-link">
-                {link.platform.charAt(0).toUpperCase() + link.platform.slice(1).replace('-', ' ')}
-              </a>
-            ))}
-          </div>
-        </div>
-      )}
+      
 
       {musicPost.body && (
         <div class="article-content">
@@ -123,143 +119,6 @@ const pageTitle = musicPost.title;
     </nav>
   </article>
   
-  <!-- Add floating settings panel -->
-  <SettingsPanel client:load />
+  
 </BaseLayout>
 
-<style>
-  .music-post-detail {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 2rem;
-    background: linear-gradient(135deg, var(--color-blush), var(--color-sage));
-    border-radius: 20px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.1);
-  }
-  
-  
-  .post-content {
-    margin-bottom: 2rem;
-  }
-  
-  .tracks-section,
-  .streaming-section,
-  .article-content,
-  .credits-section {
-    margin-bottom: 2rem;
-    padding: 1.5rem;
-    background: #f9f9f9;
-    border-radius: 8px;
-  }
-  
-  .tracks-list {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-  }
-  
-  .track-item {
-    background: white;
-    padding: 1.5rem;
-    border-radius: 8px;
-    border: 1px solid #e1e1e1;
-  }
-  
-  .track-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-  }
-  
-  .track-header h3 {
-    margin: 0;
-    color: #007acc;
-  }
-  
-  .track-duration {
-    color: #666;
-    font-size: 0.9rem;
-  }
-  
-  .track-player {
-    margin-bottom: 1rem;
-  }
-  
-  .track-streaming {
-    margin-bottom: 1rem;
-  }
-  
-  .track-streaming h4 {
-    margin: 0 0 0.5rem 0;
-    font-size: 0.9rem;
-    color: #666;
-  }
-  
-  .track-lyrics {
-    margin-top: 1rem;
-  }
-  
-  .track-lyrics h4 {
-    margin: 0 0 0.5rem 0;
-    font-size: 0.9rem;
-    color: #666;
-  }
-  
-  .audio-player {
-    width: 100%;
-    margin-top: 1rem;
-  }
-  
-  .streaming-links {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-top: 1rem;
-  }
-  
-  .streaming-link {
-    background: #007acc;
-    color: white;
-    padding: 0.5rem 1rem;
-    border-radius: 4px;
-    text-decoration: none;
-    font-weight: bold;
-  }
-  
-  .streaming-link:hover {
-    background: #005a9e;
-  }
-  
-  .lyrics {
-    white-space: pre-wrap;
-    font-family: 'Georgia', serif;
-    line-height: 1.6;
-    margin-top: 1rem;
-  }
-  
-  .credits {
-    font-style: italic;
-    color: #666;
-    margin-top: 1rem;
-  }
-  
-  .back-link {
-    display: inline-block;
-    background: #f0f0f0;
-    padding: 0.5rem 1rem;
-    border-radius: 4px;
-    text-decoration: none;
-    color: #333;
-  }
-  
-  .back-link:hover {
-    background: #e0e0e0;
-  }
-  
-  @media (max-width: 768px) {
-    .music-post-detail {
-      padding: 1rem;
-    }
-  }
-</style>
