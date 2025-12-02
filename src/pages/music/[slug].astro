@@ -69,6 +69,14 @@ const pageTitle = musicPost.title;
     <div class="post-content">
       {musicPost.tracks && musicPost.tracks.length > 0 && (
         <div class="tracks-section">
+          <!-- Loading placeholder shown until WaveSurferPlayer reports ready -->
+          <div id="music-loading" class="music-loading">
+            <div class="music-loading-inner">
+              <div class="music-loading-spinner" aria-hidden="true"></div>
+              <div class="music-loading-text">Loading music player…</div>
+            </div>
+          </div>
+
           <WaveSurferPlayer 
             tracks={musicPost.tracks.map((track, index) => {
               console.log(`Track ${index + 1} data:`, track);

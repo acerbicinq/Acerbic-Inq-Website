@@ -213,6 +213,26 @@ margin: 3px;
   color: var(--text-color);
 }
 
+/* Music player loading placeholder */
+.music-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 160px;
+  margin: 1rem 0;
+}
+.music-loading-inner { text-align: center; }
+.music-loading-spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid rgba(0,0,0,0.08);
+  border-left-color: var(--text-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 8px auto;
+}
+.music-loading-text { color: var(--text-color); }
+
 /* CROSS-BROWSER COMPATABILITY - START */
 /* Cross Browswer Compatability with Media Players */
 /* Removes Default Audio Player Styling Across All Browsers */
