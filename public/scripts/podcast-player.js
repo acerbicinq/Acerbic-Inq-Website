@@ -513,6 +513,7 @@ function updateAudioPlayPauseUI() {
 
 
 // Video Player Controls
+// Video Player Controls (guarded)
 const video = document.querySelector('.video');
 const toggleButton = document.querySelector('.play_button');
 const progress = document.getElementById('video-progress');
@@ -521,88 +522,92 @@ const skipBtns = document.querySelectorAll('.video-player .skip-back-button, .vi
 const videoSpeed = document.querySelector('.video-speed');
 const videoTime = document.getElementById('video-time');
 const videoDuration = document.getElementById('video-duration');
-const fullscreenBtn = document.querySelector('.fullscreen-button'); 
+const fullscreenBtn = document.querySelector('.fullscreen-button');
 
-
-    //Play/Pause Toggle Button
-function togglePlay() {
-  if (video.paused || video.ended) {
-    video.play();
-  } else {
-    video.pause();
+if (video) {
+  //Play/Pause Toggle Button
+  function togglePlay() {
+    if (video.paused || video.ended) {
+      video.play();
+    } else {
+      video.pause();
+    }
   }
-}
 
-function updateToggleButton() {
-  toggleButton.innerHTML = video.paused ? "►" : "❚❚";
-}
-    //Progress Bar & Video Duration
-video.addEventListener("timeupdate", () => {
-  // Update the thumb position (0–100)
-  const percent = (video.currentTime / video.duration) * 100;
-  progress.value = percent;
-});
+  function updateToggleButton() {
+    if (toggleButton) toggleButton.innerHTML = video.paused ? "►" : "❚❚";
+  }
 
-// Scrubbing Functionality
-progress.addEventListener("input", (e) => {
-  const newTime = (e.target.value / 100) * video.duration;
-  video.currentTime = newTime;
-});
+  //Progress Bar & Video Duration
+  if (progress) {
+    video.addEventListener("timeupdate", () => {
+      // Update the thumb position (0–100)
+      const percent = (video.currentTime / video.duration) * 100;
+      progress.value = percent;
+    });
 
+    // Scrubbing Functionality
+    progress.addEventListener("input", (e) => {
+      const newTime = (e.target.value / 100) * video.duration;
+      video.currentTime = newTime;
+    });
+  }
 
+  //Play/Pause Toggle Functionality
+  if (toggleButton) toggleButton.addEventListener("click", togglePlay);
+  video.addEventListener("click", togglePlay);
+  video.addEventListener("play", updateToggleButton);
+  video.addEventListener("pause", updateToggleButton);
 
-//Play/Pause Toggle Functionality
-toggleButton.addEventListener("click", togglePlay);
-video.addEventListener("click", togglePlay);
-video.addEventListener("play", updateToggleButton);
-video.addEventListener("pause", updateToggleButton);
-
-//Video Duration Display
+  //Video Duration Display
   video.addEventListener("timeupdate", () => {
     const percent = (video.currentTime / video.duration) * 100;
-    progress.value = percent;
-    videoTime.textContent = formatTimestamp(video.currentTime);
-    videoDuration.textContent = formatTimestamp(video.duration);
+    if (progress) progress.value = percent;
+    if (videoTime) videoTime.textContent = formatTimestamp(video.currentTime);
+    if (videoDuration) videoDuration.textContent = formatTimestamp(video.duration);
   });
-//Duration Displays as soon as metadata loads
-video.addEventListener("loadedmetadata", () => {
-  videoDuration.textContent = formatTime(video.duration);
-});
 
-//Skip Forward/Backward Functionality
-function handleVideoSkip() {
-  if (!video) return;
-  video.currentTime += parseFloat(this.dataset.skip);
-}
-if (skipBtns && skipBtns.length) {
-  skipBtns.forEach((btn) => btn.addEventListener('click', handleVideoSkip));
-}
-
-
-//Volume Functionality
-if (volumeSlider) {
-  // "input" updates continuously while dragging
-  volumeSlider.addEventListener("input", (e) => {
-    video.volume = e.target.value; // value is 0 → 1
+  //Duration Displays as soon as metadata loads
+  video.addEventListener("loadedmetadata", () => {
+    if (videoDuration) videoDuration.textContent = formatTime(video.duration);
   });
-}
-//Playback Speed Functionality
-videoSpeed.addEventListener('change', function() {
-  video.playbackRate = parseFloat(videoSpeed.value);
-});
+
+  //Skip Forward/Backward Functionality
+  function handleVideoSkip() {
+    if (!video) return;
+    video.currentTime += parseFloat(this.dataset.skip);
+  }
+  if (skipBtns && skipBtns.length) {
+    skipBtns.forEach((btn) => btn.addEventListener('click', handleVideoSkip));
+  }
+
+  //Volume Functionality
+  if (volumeSlider) {
+    // "input" updates continuously while dragging
+    volumeSlider.addEventListener("input", (e) => {
+      video.volume = e.target.value; // value is 0 → 1
+    });
+  }
+
+  //Playback Speed Functionality
+  if (videoSpeed) videoSpeed.addEventListener('change', function() {
+    video.playbackRate = parseFloat(videoSpeed.value);
+  });
+
   //Keyboard Spacebar Play/Pause
-document.addEventListener("keydown", (e) => {
-  if (e.code === "Space") togglePlay();
-});
+  document.addEventListener("keydown", (e) => {
+    if (e.code === "Space") togglePlay();
+  });
 
   //Fullscreen Toggle
-fullscreenBtn.addEventListener("click", () => {
-  if (!document.fullscreenElement) {
-    video.requestFullscreen();
-  } else {
-    document.exitFullscreen();
-  }
-});
+  if (fullscreenBtn) fullscreenBtn.addEventListener("click", () => {
+    if (!document.fullscreenElement) {
+      video.requestFullscreen();
+    } else {
+      document.exitFullscreen();
+    }
+  });
+}
 
 
 
@@ -615,6 +620,14 @@ const videoContainer = document.getElementById("video-player-container");
 // Episode cover wrapper — hide during video mode
 const coverSection = document.querySelector('.episode-cover-section');
 
+  // Diagnostic: log presence of key elements
+  console.log('Media elements:', {
+    mediaButtons: mediaButtons.length,
+    audioContainer: !!audioContainer,
+    videoContainer: !!videoContainer,
+    coverSection: !!coverSection
+  });
+
 // Pull saved preference OR default to "audio"
 let savedMode = localStorage.getItem("preferredMediaMode") || "audio";
 
@@ -622,18 +635,27 @@ let savedMode = localStorage.getItem("preferredMediaMode") || "audio";
 function applyMode(type) {
   // Update active button styling
   mediaButtons.forEach(b => b.classList.remove("active"));
-  document.querySelector(`[data-type="${type}"]`).classList.add("active");
+  const btn = document.querySelector(`[data-type="${type}"]`);
+  if (btn && btn.classList) btn.classList.add("active");
 
   if (type === "audio") {
-    video.pause();
-    audioContainer.classList.remove("hidden");
-    videoContainer.classList.add("hidden");
+    if (video && typeof video.pause === 'function') try { video.pause(); } catch (e) {}
+    if (audioContainer && audioContainer.classList) audioContainer.classList.remove("hidden");
+    if (videoContainer && videoContainer.classList) videoContainer.classList.add("hidden");
+    // Fallback: force inline styles to ensure correct visibility even if CSS missed
+    try { if (audioContainer) audioContainer.style.display = ''; } catch(e){}
+    try { if (videoContainer) videoContainer.style.display = 'none'; } catch(e){}
     if (coverSection) coverSection.classList.remove('hidden');
+    console.log('applyMode: audio selected — audio shown, video hidden');
   } else if (type === "video") {
-    audio.pause();
-    videoContainer.classList.remove("hidden");
-    audioContainer.classList.add("hidden");
+    if (audio && typeof audio.pause === 'function') try { audio.pause(); } catch (e) {}
+    if (videoContainer && videoContainer.classList) videoContainer.classList.remove("hidden");
+    if (audioContainer && audioContainer.classList) audioContainer.classList.add("hidden");
+    // Fallback: force inline styles to ensure correct visibility even if CSS missed
+    try { if (videoContainer) videoContainer.style.display = ''; } catch(e){}
+    try { if (audioContainer) audioContainer.style.display = 'none'; } catch(e){}
     if (coverSection) coverSection.classList.add('hidden');
+    console.log('applyMode: video selected — video shown, audio hidden');
   }
 }
 
