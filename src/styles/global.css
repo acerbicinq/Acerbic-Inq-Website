@@ -131,7 +131,14 @@ footer {
     height: 25px;
     width: 25px;
   }
-
+.under-construction {
+  text-align: center;
+  border: 1px solid var(--text-color);
+  font-size: 0.8rem;
+  color: var(--text-color);
+  margin-bottom: 1rem;
+  padding: 1rem;
+}
 #copyright {
 display: block;
 margin: 0 auto;
