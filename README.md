@@ -2,6 +2,9 @@
 
 A modern podcast website featuring seamless interlude integration, built with Astro and Sanity CMS.
 
+**Developer Notes:** This website is primarily a vibe-coded website. At the time, I did not yet have the skills to create this website in the capacity I wanted by myself; however, this project has taught me the limitations of using AI to code as it's not very good with custom structures and implementation. It also would ruin a lot of the HTML/CSS work I did on my own, and has hijacked some of the styling. I've deemed this code too bloated to fix, and will now start from scratch using W3Schools, MDN, and books to guide me. Yes, it'll take longer, but at least it will be done properly.
+___________________________________________________________
+
 ## 🎧 Features
 
 ### 🎵 Music Features
